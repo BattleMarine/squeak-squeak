@@ -5,16 +5,18 @@
 
 ## 현재 단계: Step 0 — 개발 기반
 
-2026-09-15 파일 확인 기준: Unity `6000.3.23f1`, 기본 `SampleScene`, README·AGENTS가 존재한다. 패키지 설정에 URP와 Input System이 등록되어 있다. 에디터 실행·Windows 빌드·다른 PC 재현은 미검증이다.
+2026-09-15 기준: Unity `6000.3.23f1`·URP·새 Input System 확인, `CleaningRoom` 기본 배치와 Play Mode 검증 완료. 상세 근거와 재현 절차는 [Step 0 검증 기록](Docs/Step0-검증.md)을 참고한다.
 
 다음 작업은 아래 순서로 진행한다.
 
-- [ ] 기존 렌더링·입력 설정과 에디터 상태 확인, 필요한 폴더 구조 정리
-- [ ] `CleaningRoom` 생성: 탑뷰 Orthographic Camera, Light, Workbench, 임시 Coin 배치
-- [ ] 마우스 입력 방식, 기본 해상도·화면비, Windows 빌드 설정 확정
-- [ ] `.gitignore`와 에셋의 `.meta` 추적 상태 점검
-- [ ] 첫 Windows 빌드 생성 및 실행 확인
-- [ ] 다른 PC에서 Clone → 동일 Unity 버전으로 열기 → 씬 실행·빌드 재현
+- [x] 렌더링·입력 설정과 에디터 상태 확인, 필요한 씬·설정·임시 머티리얼 폴더 구성
+- [x] `CleaningRoom` 생성: 탑뷰 Orthographic Camera, Light, Workbench, 임시 Coin 배치·저장·Play Mode 검증
+- [x] 입력 기준 확정: Mouse Move 도구 이동 / LMB Hold·Drag 도구 사용 / MMB Drag 동전 자유 회전 / Wheel 확대·축소 / F 동전 위치·회전·Zoom 초기화. 실제 입력 연결은 Step 1.
+- [x] 초기 시작 씬 `CleaningRoom`, 기본 1280×720 창 모드·크기 조절 불가, 제품명 `Squeak Squeak` 설정·저장 확인
+- [x] Windows x64 빌드·재빌드 성공 — 오류 0, 기존 패키지 경고 485. 실행 창 제목·1280×720 크기·크기 조절 불가·정상 종료 확인. 육안·수동 조작은 미검증.
+- [ ] 다른 PC에서 Clone → 동일 Unity 버전으로 열기 → 씬 실행·빌드 재현 — 사용자 담당
+
+외부 에셋 관련 점검은 사용자 요청으로 보류한다. 다른 PC 재현 확인 후 Step 1로 전환한다.
 
 ## 개발 기준
 

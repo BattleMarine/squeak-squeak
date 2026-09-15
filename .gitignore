@@ -17,8 +17,18 @@
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
+# 로컬 빌드 출력 전체 제외 (실행 파일, 데이터, DLL, 로그, 검증 결과)
 /[Bb]uild/
 /[Bb]uilds/
+# Windows 빌드를 프로젝트 루트에 잘못 출력한 경우도 제외
+/SqueakSqueak.exe
+/SqueakSqueak_Data/
+/UnityPlayer.dll
+/UnityCrashHandler64.exe
+/MonoBleedingEdge/
+/D3D12/
+/DirectML.dll
+/*_BurstDebugInformation_DoNotShip/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 *.log
