@@ -6,9 +6,9 @@
 
 - 프로젝트 루트: `C:\Users\ktsvc\Projecets\squeak-squeak`
 - 마지막 분석: 2026-09-17 (KST)
-- 마지막 분석 커밋: `19bb21a4662e2bac0ca51a024a0df1ffb26c84f2` — `docs: Step 0 검증 완료와 Step 1 전환 기록`
+- 마지막 분석 커밋: `d3098224ecd5d1be1939eb13c74f11a1c2075d40` — `feat: [s1-01] 동전 표면 조작 기반 구현`
 - 목표: 탑뷰 3D 환경에서 동전 하나를 청소·광택 처리해 결과 화면까지 진행하는 Windows용 MVP.
-- 현재 단계: Step 0 완료, Step 1의 S1-01a~S1-01d 입력·표면 판정·카메라 제어 완료.
+- 현재 단계: Step 0 완료, Step 1의 S1-01a~S1-02b 입력·표면 판정·카메라 제어·도구 선택 UI 완료.
 
 ## 확인된 환경
 
@@ -36,6 +36,8 @@
 | `Assets/Materials/Prototype/` | 임시 동전·작업대 머티리얼 | 확인 | 파일 목록 |
 | `Assets/Settings/` | URP 렌더러·파이프라인·볼륨 설정 | 확인 | 파일 목록 |
 | `Assets/InputSystem_Actions.inputactions` | Player/UI 템플릿과 S1-01 청소 입력 | 확인 | 입력 에셋 |
+| `Assets/Data/CleaningTools/` | S1-02a의 마른 천·작은 솔·광택천 ScriptableObject 데이터 | 확인 | 도구 에셋 3개 |
+| `Assets/Data/UiInputActions/` | S1-02b EventSystem의 UI Action 참조 에셋 | 확인 | Point·Click 등 UI 액션 참조 8개 |
 | `Docs/` | 기획, Step 0 검증, Step 1 구현 지시 | 확인 | 문서 목록 |
 | `Assets/Scripts/Cleaning/` | S1-01 표면 판정, 도구 커서, 회전·줌·복원 런타임 코드 | 확인 | `CoinSurfacePointer.cs`, `SurfaceToolCursor.cs` |
 | `Assets/Editor/` | 아직 없음. 필요 시 Step 1 에디터 도구를 둔다 | 확인 | 파일 목록 |
@@ -49,12 +51,12 @@
 
 - 빌드 활성 씬: `Assets/Scenes/CleaningRoom.unity`.
 - 비활성·보존 씬: `Assets/Scenes/SampleScene.unity`.
-- `CleaningRoom`의 확인된 계층: `Main Camera`, `Directional Light`, `Workbench`, `Coin/CoinBody`, `ToolCursor`, `CleaningController`.
+- `CleaningRoom`의 확인된 계층: `Main Camera`, `Directional Light`, `Workbench`, `Coin/CoinBody`, `ToolCursor`, `CleaningController`, `ToolSelectionCanvas`, `EventSystem`.
 - 동전 초기 위치는 `(0, 0.13, 0)`, 탑뷰 카메라는 `(0, 6, 0)`에 배치되어 있다. `CleaningController`는 Input Actions·카메라·CoinBody Collider·Coin 루트·ToolCursor를 Inspector 참조로 연결한다.
 
 ## 아키텍처와 규칙
 
-- 런타임 아키텍처: S1-01은 `CoinSurfacePointer`가 Cleaning 맵 활성화, CoinBody 표면 Raycast, 중클릭 회전, 줌, 뷰 복원을 맡고 `SurfaceToolCursor`가 표면 커서를 맡는다. 이후 도구·오염·UI·결과 책임을 추가한다.
+- 런타임 아키텍처: S1-01은 `CoinSurfacePointer`가 Cleaning 맵 활성화, CoinBody 표면 Raycast, 중클릭 회전, 줌, 뷰 복원을 맡고 `SurfaceToolCursor`가 표면 커서를 맡는다. S1-02a는 `CleaningToolDefinition`이 도구 수치를, `CleaningToolSelection`이 `CleaningController`의 현재 도구 상태를 맡는다. S1-02b는 `CleaningToolButton`이 선택 상태를 표시하고 `InputSystemUIInputModule`이 기존 UI 입력 맵을 EventSystem에 연결한다. 이후 오염·결과 책임을 추가한다.
 - 오염 표현: Step 1은 고정 A 오브젝트와 동전 전체 B 수치로 검증하며, 위치별 마스크·고급 셰이더는 Step 2 이후 범위다.
 - 코드 배치: 런타임은 `Assets/Scripts/`, 에디터 전용 도구는 `Assets/Editor/`. Inspector 참조를 사용하고 매 프레임 이름 검색을 피한다.
 - 스타일: 프로젝트 코드가 없어 코드 서식·네임스페이스 규칙은 미확정이다. `AGENTS.md`의 Unity 편집·검증·Git 규칙을 우선한다.
@@ -77,7 +79,7 @@
 
 - 분석 시점에 사용자 로컬 변경이 존재한다. `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/UnityConnectSettings.asset`, `README.md`, `ROADMAP.md`는 작업 전 상태를 다시 확인하고 보존한다.
 - Unity Editor의 실제 연결 프로젝트·활성 씬·Play Mode·Console·임포트 상태는 MCP가 연결된 뒤 읽기 도구로 재확인해야 한다.
-- S1-01d까지 구현·Play Mode 검증을 완료했다. 상세 재개 지점과 검증 기록은 `Docs/AI/Step1ImplementationChecklist.md`를 따른다.
+- S1-02b까지 구현·Play Mode 검증을 완료했다. 상세 재개 지점과 검증 기록은 `Docs/AI/Step1ImplementationChecklist.md`를 따른다.
 
 ## 읽은 주요 근거
 

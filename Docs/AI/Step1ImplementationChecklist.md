@@ -52,6 +52,12 @@
 - **S1-01d — 통과 (2026-09-16, KST):** `CoinSurfacePointer`에 `RotateCoin`·`PointerDelta`·`Zoom`·`ResetView` 액션 처리를 추가했다. 중클릭이 동전 표면에서 시작된 경우에만 회전 상태로 진입하며, 누르는 동안에는 포인터가 동전 밖으로 나가도 카메라 기준 축으로 동전을 회전한다. 회전 중에는 표면 적중 상태와 도구 커서를 해제해 이후 청소 처리와 충돌하지 않게 했다. EventSystem이 존재할 때 UI 위 포인터 입력은 회전 시작과 줌 처리를 막는다.
 - **S1-01d 씬 연결·값:** `CleaningController/CoinSurfacePointer`의 `Coin Transform` 참조를 `Coin` 루트로 연결했다. 줌은 Orthographic Size 기준 최소 `1.6`, 최대 `3.2`, 감도 `0.0025`이며, 시작 시 Coin의 위치·회전과 카메라 Size를 저장한다. `F` 입력은 그 세 값과 회전 상태만 복원하므로 향후 청소 진행 상태에는 영향을 주지 않는다.
 - **S1-01d 검증:** Play Mode에서 Coin 중심 표면 적중, 회전 적용, 최소·최대 줌 제한, 초기 위치·회전·줌 복원을 자동 검증해 모두 통과했다. 종료 후 Edit Mode에서 Coin `(0, 0.13, 0)`·회전 `(0, 0, 0)`·카메라 Size `2.4`·비표시 ToolCursor 상태를 재확인하고 `CleaningRoom`을 저장했다. Console 오류는 0건이다. 실제 Game View에서 물리 마우스 중클릭·휠·F를 연속 조작하는 최종 수동 검증은 S1-06a 통합 검증에 남긴다.
+- **S1-02a — 통과 (2026-09-17, KST):** `CleaningToolDefinition` ScriptableObject와 `CleaningToolSelection`을 추가했다. 도구 데이터는 ID·표시 이름·브러시 반경·A 개별 오염 제거량/초·B 표면 오염 제거량/초·광택 증가량/초를 Inspector에 직렬화한다. 선택 상태는 `CleaningController`가 단일 소유하며, 허용 목록 밖 도구는 선택하지 않는다. 이후 UI와 재시작은 `TrySelect`·`ResetToDefaultTool` 및 `ToolSelected` 이벤트를 사용한다.
+- **S1-02a 데이터·씬 연결:** `Assets/Data/CleaningTools/`에 마른 천 `(반경 0.32, A 0.35, B 0.12, 광택 0.03)`, 작은 솔 `(0.18, 1.00, 0.03, 0)`, 광택천 `(0.28, 0.15, 0.06, 0.18)`을 생성했다. `CleaningController/CleaningToolSelection`의 허용 목록에 세 에셋을 순서대로 연결하고 마른 천을 기본 도구로 설정했다.
+- **S1-02a 검증:** Unity 컴파일·임포트 후 세 에셋의 Inspector 직렬화 값과 씬 참조를 재조회했다. Play Mode에서 마른 천 기본 선택, 작은 솔·광택천 선택, 기본값 복귀, 잘못된 ID 거부, 세 번의 선택 변경 이벤트와 상대 역할 수치를 자동 검증해 모두 통과했다. Edit Mode로 복귀한 뒤 씬 저장 상태·Console 오류 0건을 확인했다. Canvas/EventSystem과 실제 버튼 클릭 검증은 S1-02b에 남긴다.
+- **S1-02b — 통과 (2026-09-17, KST):** `ToolSelectionCanvas`를 Screen Space Overlay로 추가하고 기준 해상도 `1280×720`에 맞춘 하단 패널에 마른 천·작은 솔·광택천 버튼을 배치했다. `CleaningToolButton`은 `CleaningToolSelection`의 선택 이벤트를 구독해 선택 도구를 강조하고, 비활성화 시 구독을 해제한다. 버튼 클릭은 선택 상태만 변경하며 별도 게임 입력을 직접 호출하지 않는다.
+- **S1-02b 입력·씬 연결:** `EventSystem`에는 기존 `UI` Action Map을 사용하는 `InputSystemUIInputModule`을 연결했다. Navigate·Submit·Cancel·Point·Click·RightClick·MiddleClick·ScrollWheel 액션 참조는 `Assets/Data/UiInputActions/`에 영속 에셋으로 저장했다. Canvas에는 `GraphicRaycaster`가 있고, 각 버튼은 해당 도구 데이터·선택 상태·Image·Button 참조를 Inspector에 연결한다.
+- **S1-02b 검증:** Unity 컴파일·임포트 후 EventSystem·UI 모듈·필수 UI 액션·Canvas·GraphicRaycaster·버튼 3개를 재조회했다. Play Mode에서 GraphicRaycaster가 작은 솔·광택천 버튼을 적중시키고 EventSystem `PointerClick` 경로가 선택 상태와 강조 색상을 갱신하는 것을 확인했다. UI·Cleaning Action Map은 함께 활성화됐고 클릭 후 `CoinSurfacePointer.IsRotating`은 거짓이었다. Edit Mode 복귀 후 씬 저장 상태, Missing Script 없음, Console 오류 0건을 확인했다. 실제 물리 마우스의 버튼 클릭과 이후 청소 효과의 완전한 상호 배제는 S1-06a 통합 검증에 남긴다.
 
 ## 재개 전 확인
 
@@ -59,3 +65,14 @@
 - Unity MCP가 연결되어 있으면 저위험 읽기 호출로 연결부터 증명한다.
 - `Docs/Step1-구현지시서.md`의 확정 요구·제외 범위·검증 체크리스트를 다시 확인한다.
 - 한 번에 여러 단계를 완료 처리하지 말고, 각 단계의 씬 연결과 검증 근거를 남긴다.
+
+## 스텝별 검토 결과
+
+검토 후 이 문서 최하단에 날짜·대상 스텝·판정·후속 조치를 간략히 기록한다. 구현자의 진행 기록과 별도로 실제 검토 범위와 미실행 검증을 구분한다. 지적 사항은 수정 후 재검토 근거를 남겨 해소 처리한다. 각 검토 항목 앞에 `s1-02-f1` 형식의 고유 태그를 붙인다(스텝 번호 + 해당 스텝 내 검토 일련번호). 세부 단계 a/b는 본문에 명시하며, 새 항목은 다음 번호를 사용한다. 재검토·해소 후에도 기존 태그를 유지하고 재사용하지 않는다.
+
+### 2026-09-17 — S1-02b까지 경량 검토
+
+- **범위:** 체크리스트·관련 코드와 Unity Edit Mode 씬 참조를 대조했다. 도구 3개·기본 도구·버튼 참조 연결을 확인했고 Missing Script 및 조회된 Console 오류·경고는 0건이었다. 이번 검토에서 Play Mode·실제 마우스 조작·빌드는 실행하지 않았다.
+- **[s1-01-f1] S1-01d — 보완 필요:** `CoinSurfacePointer.UpdateRotation()`이 현재 위치의 표면 판정 전에 이전 프레임의 `HasSurfaceHit`를 사용한다. 중클릭 시작 시 현재 포인터 위치로 재판정하고, 동전 경계를 이동하며 중클릭하는 경우를 확인할 것. 코드상 확인이며 실행 재현은 미실행.
+- **[s1-02-f1] S1-02a — 검토 범위 내 이상 없음:** 도구 데이터·선택 상태의 분리와 씬 연결을 확인했다. 선택 이벤트 등 기존 Play Mode 통과 기록은 이번에 재검증하지 않았다.
+- **[s1-02-f2] S1-02b — 구현 확인, 입력 통합 검증 대기:** 버튼 연결은 확인했다. 현재 UI 위에서도 동전 표면 판정은 유지되므로 S1-03 청소 구현 시 `HasSurfaceHit`만으로 청소하지 말고 UI 차단 조건을 적용할 것. 기존 `PointerClick` 검증만으로 실제 입력의 상호 배제가 입증되지는 않는다. S1-06a에서 실제 마우스로 UI 클릭·드래그 중 청소 및 회전 시작이 차단되는지 검증할 것.
