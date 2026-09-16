@@ -62,6 +62,14 @@ namespace SqueakSqueak.Cleaning
 
         public bool IsRotating { get; private set; }
 
+        /// <summary>
+        /// 도구 처리에서 사용할 수 있는 현재 포인터 상태입니다.
+        /// UI 위 포인터는 동전 표면에 적중하더라도 게임플레이 입력으로 취급하지 않습니다.
+        /// </summary>
+        public bool CanUseTool => HasSurfaceHit && !IsPointerOverUi;
+
+        public bool IsPointerOverUi => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
         private void Awake()
         {
             if (!TryResolveDependencies())
@@ -103,7 +111,7 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
-            if (!IsPointerOverUi())
+            if (!IsPointerOverUi)
             {
                 ApplyZoom(zoomAction.ReadValue<Vector2>().y);
             }
@@ -127,7 +135,24 @@ namespace SqueakSqueak.Cleaning
                 return true;
             }
 
-            if (!rotateCoinAction.WasPressedThisFrame() || !HasSurfaceHit || IsPointerOverUi())
+            if (!rotateCoinAction.WasPressedThisFrame() || IsPointerOverUi)
+            {
+                return false;
+            }
+
+            return TryBeginRotation(pointerPositionAction.ReadValue<Vector2>());
+        }
+
+        private bool TryBeginRotation(Vector2 screenPosition)
+        {
+            if (IsPointerOverUi)
+            {
+                return false;
+            }
+
+            // 중클릭이 들어온 현재 프레임의 포인터 위치를 기준으로 회전 시작을 판정한다.
+            UpdateSurfaceFromScreenPosition(screenPosition);
+            if (!HasSurfaceHit)
             {
                 return false;
             }
@@ -211,11 +236,6 @@ namespace SqueakSqueak.Cleaning
             initialCoinPosition = coinTransform.position;
             initialCoinRotation = coinTransform.rotation;
             initialOrthographicSize = gameplayCamera.orthographicSize;
-        }
-
-        private static bool IsPointerOverUi()
-        {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
         }
 
         private void OnValidate()
