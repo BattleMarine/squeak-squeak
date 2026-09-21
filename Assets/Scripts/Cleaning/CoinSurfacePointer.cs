@@ -113,24 +113,16 @@ namespace SqueakSqueak.Cleaning
                 return false;
             }
 
-            var hitCount = Physics.RaycastNonAlloc(
-                new Ray(origin, direction / targetDistance),
-                raycastHits,
-                targetDistance + surfaceTolerance,
-                raycastMask,
-                QueryTriggerInteraction.Ignore);
-
-            var closestDistance = float.PositiveInfinity;
-            for (var index = 0; index < hitCount; index++)
+            if (!TryFindClosestPhysicsHit(
+                    new Ray(origin, direction / targetDistance),
+                    targetDistance + surfaceTolerance,
+                    out var closestHit))
             {
-                var hit = raycastHits[index];
-                if (hit.collider == coinCollider && hit.distance < closestDistance)
-                {
-                    closestDistance = hit.distance;
-                }
+                return false;
             }
 
-            return closestDistance < float.PositiveInfinity && Mathf.Abs(closestDistance - targetDistance) <= surfaceTolerance;
+            return closestHit.collider == coinCollider &&
+                Mathf.Abs(closestHit.distance - targetDistance) <= surfaceTolerance;
         }
 
         private void Awake()
@@ -307,28 +299,38 @@ namespace SqueakSqueak.Cleaning
             maximumZoom = Mathf.Max(minimumZoom, maximumZoom);
         }
 
-        private bool TryFindCoinSurfaceHit(Vector2 screenPosition, out RaycastHit closestCoinHit)
+        private bool TryFindCoinSurfaceHit(Vector2 screenPosition, out RaycastHit surfaceHit)
         {
             var ray = gameplayCamera.ScreenPointToRay(screenPosition);
+            return TryFindClosestPhysicsHit(ray, gameplayCamera.farClipPlane, out surfaceHit) &&
+                surfaceHit.collider == coinCollider;
+        }
+
+        /// <summary>
+        /// Coin 전용 필터보다 먼저 가장 가까운 물리 적중을 구해 가림물을 우선 처리합니다.
+        /// RaycastNonAlloc의 반환 순서는 보장되지 않으므로 거리를 직접 비교합니다.
+        /// </summary>
+        private bool TryFindClosestPhysicsHit(Ray ray, float maxDistance, out RaycastHit closestHit)
+        {
             var hitCount = Physics.RaycastNonAlloc(
                 ray,
                 raycastHits,
-                gameplayCamera.farClipPlane,
+                maxDistance,
                 raycastMask,
                 QueryTriggerInteraction.Ignore);
 
             var closestDistance = float.PositiveInfinity;
-            closestCoinHit = default;
+            closestHit = default;
 
             for (var index = 0; index < hitCount; index++)
             {
                 var hit = raycastHits[index];
-                if (hit.collider != coinCollider || hit.distance >= closestDistance)
+                if (hit.collider == null || hit.distance >= closestDistance)
                 {
                     continue;
                 }
 
-                closestCoinHit = hit;
+                closestHit = hit;
                 closestDistance = hit.distance;
             }
 

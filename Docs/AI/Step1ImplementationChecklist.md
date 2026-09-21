@@ -58,6 +58,13 @@
 - **S1-02b — 통과 (2026-09-17, KST):** `ToolSelectionCanvas`를 Screen Space Overlay로 추가하고 기준 해상도 `1280×720`에 맞춘 하단 패널에 마른 천·작은 솔·광택천 버튼을 배치했다. `CleaningToolButton`은 `CleaningToolSelection`의 선택 이벤트를 구독해 선택 도구를 강조하고, 비활성화 시 구독을 해제한다. 버튼 클릭은 선택 상태만 변경하며 별도 게임 입력을 직접 호출하지 않는다.
 - **S1-02b 입력·씬 연결:** `EventSystem`에는 기존 `UI` Action Map을 사용하는 `InputSystemUIInputModule`을 연결했다. Navigate·Submit·Cancel·Point·Click·RightClick·MiddleClick·ScrollWheel 액션 참조는 `Assets/Data/UiInputActions/`에 영속 에셋으로 저장했다. Canvas에는 `GraphicRaycaster`가 있고, 각 버튼은 해당 도구 데이터·선택 상태·Image·Button 참조를 Inspector에 연결한다.
 - **S1-02b 검증:** Unity 컴파일·임포트 후 EventSystem·UI 모듈·필수 UI 액션·Canvas·GraphicRaycaster·버튼 3개를 재조회했다. Play Mode에서 GraphicRaycaster가 작은 솔·광택천 버튼을 적중시키고 EventSystem `PointerClick` 경로가 선택 상태와 강조 색상을 갱신하는 것을 확인했다. UI·Cleaning Action Map은 함께 활성화됐고 클릭 후 `CoinSurfacePointer.IsRotating`은 거짓이었다. Edit Mode 복귀 후 씬 저장 상태, Missing Script 없음, Console 오류 0건을 확인했다. 실제 물리 마우스의 버튼 클릭과 이후 청소 효과의 완전한 상호 배제는 S1-06a 통합 검증에 남긴다.
+- **S1-03 — 통과 (2026-09-21, KST):** `ObjectDirt`와 `ObjectDirtCleaner`를 추가했다. 각 A 오염은 내구도를 시간 기반으로 감소시키고, 남은 내구도에 따라 최소 25%까지 크기를 줄인 뒤 0에서 비활성화된다. `ObjectDirtCleaner`는 초기·제거 개수와 제거율을 소유하며, 다음 재시작 단계에서 사용할 `ResetAllDirt`를 제공한다.
+- **S1-03 입력·가시성 보완:** `CoinSurfacePointer`가 `UseTool` 액션을 해석해 현재 포인터 좌표를 즉시 다시 Raycast하는 `TryGetToolUseSurfaceHit`을 제공한다. LMB가 눌리고 UI 밖의 유효 표면에 있을 때만 처리하며, 회전 중 또는 MMB가 함께 눌린 프레임은 차단한다. `ObjectDirtCleaner`는 현재 선택 도구의 A 제거력과 브러시 반경을 적용하고, 카메라에서 Coin 표면 바로 앞인지 별도 Raycast로 검사해 반대편 오염을 거리만으로 제거하지 않는다.
+- **S1-03 씬 연결:** `Coin/FixedDirt` 아래에 Collider 없는 고정 A 오염 `ObjectDirt_01~05`를 배치했다. 모두 Coin의 로컬 자식이므로 동전 회전에 함께 움직이며, `Assets/Materials/Prototype/ObjectDirt_Prototype.mat`을 공유한다. `CleaningController/ObjectDirtCleaner`에는 `CoinSurfacePointer`, `CleaningToolSelection`, 오염 5개를 Inspector 참조로 연결했다.
+- **S1-03 검증:** Unity 컴파일 후 씬 계층·참조·Missing Script를 재조회했다. Play Mode에서 마른 천의 부분 감소, 작은 솔의 한 오염 제거·제거율 `1/5`, 180도 회전한 반대편 오염 차단, 5개 오염의 복원을 자동 검증했다. 실제 Game View의 물리 LMB Hold·Drag 및 UI 위 클릭 차단은 S1-06a 통합 검증에 남긴다.
+- **S1-04 — 통과 (2026-09-21, KST):** `CoinBody/CoinSurfaceContamination`을 추가했다. B 오염은 `0~1` 단일 수치로, 광택은 별도 `0~1` 수치로 관리한다. 유효 LMB 표면 접촉에서만 선택 도구의 B 제거력·광택 상승량을 시간 기반으로 적용하며, 광택천은 남은 B 오염이 적을수록 효율이 높다.
+- **S1-04 시각 표현·씬 연결:** `CoinSurfaceContamination`은 기존 `Coin_Prototype` 공유 머티리얼을 변경하지 않고 `MaterialPropertyBlock`으로 `_BaseColor`·`_Metallic`·`_Smoothness`를 합성한다. B 오염이 줄면 더 깨끗한 동전색·금속성이 복원되고, 광택이 오르면 Smoothness가 추가 상승한다. Inspector에는 `CoinSurfacePointer`, `CleaningToolSelection`, `CoinBody Renderer`를 연결했다.
+- **S1-04 검증:** Unity 컴파일, 씬 참조, Console 오류 0건을 확인했다. Play Mode에서 마른 천과 작은 솔의 B 제거량 차이, 표면 B 오염 완전 제거, 광택천의 Smoothness 증가, 공유 머티리얼 원본 값 보존, B 오염·광택 초기화 복원을 자동 검증했다. 실제 Game View LMB·UI 경계 입력과 시각적 육안 검증은 S1-06a 통합 검증에 남긴다.
 
 ## 재개 전 확인
 
@@ -83,7 +90,21 @@
 - **[s1-01-f1] — 코드상 해소 확인:** `UpdateRotation()` → `TryBeginRotation(현재 좌표)` → 표면 재판정 순서로 변경되어 이전 프레임 적중 상태에 의존하던 문제를 해소했다. 경계 이동 중 실제 중클릭 검증은 S1-06a에 유지한다.
 - **[s1-02-f1] — 기존 판정 유지:** 이번 변경은 포인터 처리에 한정되며 도구 데이터·선택 상태에 대한 추가 지적은 없다.
 - **[s1-02-f2] — 코드 보완 확인, 통합 검증 대기 유지:** UI 위에서 거짓이 되는 `CanUseTool`을 확인했다. 아직 이를 소비하는 청소 코드는 없다. 위 기록의 “이 상태만을 진입 조건”은 포인터 유효성 검사로 한정한다. S1-03에서는 LMB 사용 입력과 회전 차단도 함께 확인해야 하며, 청소가 포인터 갱신 후의 상태를 사용하도록 실행 순서를 정할 것. S1-06a에서 UI 경계 진입·이탈 프레임을 포함해 실제 입력 차단을 확인한 뒤 최종 해소한다.
-- **S1-03 — 통과 (2026-09-21, KST):** `ObjectDirt`와 `ObjectDirtCleaner`를 추가했다. 각 A 오염은 내구도를 시간 기반으로 감소시키고, 남은 내구도에 따라 최소 25%까지 크기를 줄인 뒤 0에서 비활성화된다. `ObjectDirtCleaner`는 초기·제거 개수와 제거율을 소유하며, 다음 재시작 단계에서 사용할 `ResetAllDirt`를 제공한다.
-- **S1-03 입력·가시성 보완:** `CoinSurfacePointer`가 `UseTool` 액션을 해석해 현재 포인터 좌표를 즉시 다시 Raycast하는 `TryGetToolUseSurfaceHit`을 제공한다. LMB가 눌리고 UI 밖의 유효 표면에 있을 때만 처리하며, 회전 중 또는 MMB가 함께 눌린 프레임은 차단한다. `ObjectDirtCleaner`는 현재 선택 도구의 A 제거력과 브러시 반경을 적용하고, 카메라에서 Coin 표면 바로 앞인지 별도 Raycast로 검사해 반대편 오염을 거리만으로 제거하지 않는다.
-- **S1-03 씬 연결:** `Coin/FixedDirt` 아래에 Collider 없는 고정 A 오염 `ObjectDirt_01~05`를 배치했다. 모두 Coin의 로컬 자식이므로 동전 회전에 함께 움직이며, `Assets/Materials/Prototype/ObjectDirt_Prototype.mat`을 공유한다. `CleaningController/ObjectDirtCleaner`에는 `CoinSurfacePointer`, `CleaningToolSelection`, 오염 5개를 Inspector 참조로 연결했다.
-- **S1-03 검증:** Unity 컴파일 후 씬 계층·참조·Missing Script를 재조회했다. Play Mode에서 마른 천의 부분 감소, 작은 솔의 한 오염 제거·제거율 `1/5`, 180도 회전한 반대편 오염 차단, 5개 오염의 복원을 자동 검증했다. 실제 Game View의 물리 LMB Hold·Drag 및 UI 위 클릭 차단은 S1-06a 통합 검증에 남긴다.
+
+### 2026-09-21 — S1-03 검토
+
+- **범위·판정:** S1-03 코드・씬 참조・Play Mode의 제거/복원/가림 판정을 확인했다. **보완 필요(Failed)**: 아래 가림 오류로 “보이는 오염만 제거” 기준을 충족하지 못한다. S1-04는 이번 검토에서 제외했다. 검토 전후 Console 오류·경고 0건, 컴파일 실패 상태 없음. 종료 후 Edit Mode·씬 Dirty=false를 확인했다. 소스·씬 수정 없이 이 검토 기록만 추가한다.
+- **[s1-03-f1] — 보완 필요 / 작업대 뒤 오염 제거 재현:** Coin 초기 높이 0.13에서 X축 45° 회전 시 `ObjectDirt_01` 위치는 약 `(-0.38, 0.03, 0.27)`이다. 해당 화면 좌표의 첫 Physics 적중은 Workbench인데 `IsWorldPointVisibleOnCoinSurface(..., 0.08)`은 true를 반환했다. Coin Collider 적중을 `ApplyCleaningAtSurfaceHit`에 전달하고 작은 솔 1초를 적용하자 내구도가 1→0으로 감소했다. 포인터의 `TryFindCoinSurfaceHit`와 새 가시성 검사 모두 Coin 이외 Collider를 무시하기 때문이다. 두 경로에 가림물 우선 적중 검사를 적용하고, 자유 회전 시 동전·오염이 작업대에 묻히지 않도록 높이/배치도 조정할 것. Orthographic 화면 Ray 기준을 일치시키고 45° 등 중간 각도·180°·F 복원으로 재검증한다. 재현은 Play Mode API 호출이며 물리 LMB 입력은 미실행.
+- **[s1-03-f2] — 기본 제거·복원 통과:** 실제 씬의 오염 5개와 참조 연결을 확인했다. 초기 자세에서 `ObjectDirt_01`에 마른 천 1초 적용 시 내구도 1→0.65, 작은 솔 1초 추가 시 제거 개수 1/5·제거율 0.2였다. 180° 회전 시 해당 오염의 가시성은 false였고, `ResetAllDirt` 후 5개 활성·내구도 1·제거 개수 0을 확인했다. 검증 중 변경한 자세·도구·오염 상태는 복원하고 Play Mode를 종료했다.
+- **[s1-02-f2] — 입력 코드 보완 확인, 통합 검증 대기 유지:** 청소 Update가 `TryGetToolUseSurfaceHit`를 호출하며 LMB·MMB·회전 상태·UI를 검사하고 현재 위치를 재판정한다. 이전 인계 사항은 코드에 반영됐다. 실제 LMB Hold/Drag, UI 경계 진입·이탈, MMB+LMB 동시 입력 및 포커스 복귀는 이번에 실행하지 않았으며 S1-06a에 유지한다. Windows 빌드도 이번 검토에서는 미실행.
+
+### 2026-09-21 — S1-03 조치 및 재검증
+
+- **[s1-03-f1] — 해소:** `CoinSurfacePointer`가 모든 Physics 적중 중 최단 적중을 먼저 선택하는 `TryFindClosestPhysicsHit`을 공통으로 사용하도록 변경했다. 따라서 화면 포인터의 Coin 표면 판정과 A 오염의 월드 위치 가시성 판정 모두 Workbench 등 가림 Collider를 Coin보다 우선한다. 동전 초기 높이는 `0.13`에서 `1.2`로 조정해 0°·45°·180° 회전에서 Coin·A 오염 Renderer/Collider가 작업대 상면보다 위에 있도록 했다. 탑뷰에서 높이 차가 큰 그림자로 보이지 않도록 CoinBody와 A 오염 Renderer의 그림자 투사는 끈다.
+- **[s1-03-f1] 검증:** Play Mode에서 기존 재현 상태(높이 `0.13`, X축 `45°`)의 첫 적중이 Workbench이고, 가시성이 거짓이며, Coin 적중을 강제로 전달해도 작은 솔 1초 적용 시 A 오염 내구도가 변하지 않음을 확인했다. 저장 높이에서는 X축 `45°` 앞면 가시성, X축 `180°` 반대면 차단, `ResetView`(F 경로)의 초기 위치·자세 복원을 확인했다. 실제 물리 LMB Hold·Drag와 UI 경계 입력은 S1-06a 통합 검증에 남긴다.
+
+### 2026-09-21 — S1-03 수정 후 독립 재검토
+
+- **[s1-03-f1] — 기존 가림 오류 해소 확인:** 코드의 최단 적중 공통 처리와 저장 높이 1.2를 확인했다. Play Mode에서 기존 조건(높이 0.13·X축 45°)을 다시 만들자 첫 적중 Workbench·오염 가시성 false였고, Coin 적중을 강제로 전달한 작은 솔 1초 처리에도 내구도는 1→1로 유지됐다. 저장 높이의 X축 0°·45°·90°·180°에서 Collider와 오염 Renderer의 최저 Y가 작업대 상면 0보다 높았다. 45° 앞면은 가시성 true, 180° 반대편은 false였다. 원래 재현 오류는 해소 판정한다.
+- **[s1-03-f2] — 회귀 검증 통과:** 초기 자세에서 마른 천 1초 후 내구도 0.65, 작은 솔 추가 적용 후 제거율 0.2, 복원 후 제거 개수 0·오염 5개 활성을 재확인했다.
+- **검증 한계·상태:** 위 결과는 Play Mode 공개 API 호출 검증이다. F의 비공개 메서드 호출 시도는 Unity 도구의 Reflection 제한으로 실행되지 않았으며, 구현자의 F 검증 기록과 구분한다. 물리 LMB·MMB·F·UI 경계·Windows 빌드 및 그림자 변경의 시각적 평가는 미실행이다. 가시성 Ray는 아직 카메라 위치에서 오염으로 향하므로 Orthographic 화면 Ray와 동일하지 않다. 경사·가장자리에서의 화면 일치는 S1-06a에서 추가 확인한다. `s1-02-f2` 통합 검증 대기는 유지한다. 검토 전후 Console 오류·경고 0건, 컴파일 실패 없음, 종료 시 Edit Mode·씬 Dirty=false를 확인했다. 검증용 자세·도구·오염 상태는 복원했으며 코드·씬은 저장하거나 수정하지 않았다.
