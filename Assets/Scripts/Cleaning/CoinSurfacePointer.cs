@@ -10,6 +10,7 @@ namespace SqueakSqueak.Cleaning
         private const string CleaningMapName = "Cleaning";
         private const string PointerPositionActionName = "PointerPosition";
         private const string PointerDeltaActionName = "PointerDelta";
+        private const string UseToolActionName = "UseTool";
         private const string RotateCoinActionName = "RotateCoin";
         private const string ZoomActionName = "Zoom";
         private const string ResetViewActionName = "ResetView";
@@ -49,6 +50,7 @@ namespace SqueakSqueak.Cleaning
         private InputActionMap cleaningMap;
         private InputAction pointerPositionAction;
         private InputAction pointerDeltaAction;
+        private InputAction useToolAction;
         private InputAction rotateCoinAction;
         private InputAction zoomAction;
         private InputAction resetViewAction;
@@ -69,6 +71,67 @@ namespace SqueakSqueak.Cleaning
         public bool CanUseTool => HasSurfaceHit && !IsPointerOverUi;
 
         public bool IsPointerOverUi => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
+        /// <summary>
+        /// 현재 포인터 위치에서 도구 사용에 유효한 동전 표면 적중을 가져옵니다.
+        /// 회전 시작 중이거나 UI 위, 또는 MMB가 눌린 프레임에는 청소를 차단합니다.
+        /// </summary>
+        public bool TryGetToolUseSurfaceHit(out RaycastHit surfaceHit)
+        {
+            surfaceHit = default;
+            if (useToolAction == null || !useToolAction.IsPressed() || IsRotating || rotateCoinAction.IsPressed() || IsPointerOverUi)
+            {
+                return false;
+            }
+
+            UpdateSurfaceFromScreenPosition(pointerPositionAction.ReadValue<Vector2>());
+            if (!CanUseTool)
+            {
+                return false;
+            }
+
+            surfaceHit = CurrentSurfaceHit;
+            return true;
+        }
+
+        /// <summary>
+        /// 카메라에서 봤을 때 지정 위치가 Coin 표면 바로 앞에 있는지 검사합니다.
+        /// 반대편의 A 오염을 거리만으로 제거하지 않기 위한 가시성 판정입니다.
+        /// </summary>
+        public bool IsWorldPointVisibleOnCoinSurface(Vector3 worldPoint, float surfaceTolerance)
+        {
+            if (surfaceTolerance < 0f)
+            {
+                return false;
+            }
+
+            var origin = gameplayCamera.transform.position;
+            var direction = worldPoint - origin;
+            var targetDistance = direction.magnitude;
+            if (targetDistance <= Mathf.Epsilon)
+            {
+                return false;
+            }
+
+            var hitCount = Physics.RaycastNonAlloc(
+                new Ray(origin, direction / targetDistance),
+                raycastHits,
+                targetDistance + surfaceTolerance,
+                raycastMask,
+                QueryTriggerInteraction.Ignore);
+
+            var closestDistance = float.PositiveInfinity;
+            for (var index = 0; index < hitCount; index++)
+            {
+                var hit = raycastHits[index];
+                if (hit.collider == coinCollider && hit.distance < closestDistance)
+                {
+                    closestDistance = hit.distance;
+                }
+            }
+
+            return closestDistance < float.PositiveInfinity && Mathf.Abs(closestDistance - targetDistance) <= surfaceTolerance;
+        }
 
         private void Awake()
         {
@@ -219,10 +282,11 @@ namespace SqueakSqueak.Cleaning
             cleaningMap = inputActions.FindActionMap(CleaningMapName, throwIfNotFound: false);
             pointerPositionAction = cleaningMap?.FindAction(PointerPositionActionName, throwIfNotFound: false);
             pointerDeltaAction = cleaningMap?.FindAction(PointerDeltaActionName, throwIfNotFound: false);
+            useToolAction = cleaningMap?.FindAction(UseToolActionName, throwIfNotFound: false);
             rotateCoinAction = cleaningMap?.FindAction(RotateCoinActionName, throwIfNotFound: false);
             zoomAction = cleaningMap?.FindAction(ZoomActionName, throwIfNotFound: false);
             resetViewAction = cleaningMap?.FindAction(ResetViewActionName, throwIfNotFound: false);
-            if (pointerPositionAction == null || pointerDeltaAction == null || rotateCoinAction == null || zoomAction == null || resetViewAction == null)
+            if (pointerPositionAction == null || pointerDeltaAction == null || useToolAction == null || rotateCoinAction == null || zoomAction == null || resetViewAction == null)
             {
                 Debug.LogError("CoinSurfacePointer could not find every required action in the assigned Cleaning map.", this);
                 return false;

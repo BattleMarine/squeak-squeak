@@ -83,3 +83,7 @@
 - **[s1-01-f1] — 코드상 해소 확인:** `UpdateRotation()` → `TryBeginRotation(현재 좌표)` → 표면 재판정 순서로 변경되어 이전 프레임 적중 상태에 의존하던 문제를 해소했다. 경계 이동 중 실제 중클릭 검증은 S1-06a에 유지한다.
 - **[s1-02-f1] — 기존 판정 유지:** 이번 변경은 포인터 처리에 한정되며 도구 데이터·선택 상태에 대한 추가 지적은 없다.
 - **[s1-02-f2] — 코드 보완 확인, 통합 검증 대기 유지:** UI 위에서 거짓이 되는 `CanUseTool`을 확인했다. 아직 이를 소비하는 청소 코드는 없다. 위 기록의 “이 상태만을 진입 조건”은 포인터 유효성 검사로 한정한다. S1-03에서는 LMB 사용 입력과 회전 차단도 함께 확인해야 하며, 청소가 포인터 갱신 후의 상태를 사용하도록 실행 순서를 정할 것. S1-06a에서 UI 경계 진입·이탈 프레임을 포함해 실제 입력 차단을 확인한 뒤 최종 해소한다.
+- **S1-03 — 통과 (2026-09-21, KST):** `ObjectDirt`와 `ObjectDirtCleaner`를 추가했다. 각 A 오염은 내구도를 시간 기반으로 감소시키고, 남은 내구도에 따라 최소 25%까지 크기를 줄인 뒤 0에서 비활성화된다. `ObjectDirtCleaner`는 초기·제거 개수와 제거율을 소유하며, 다음 재시작 단계에서 사용할 `ResetAllDirt`를 제공한다.
+- **S1-03 입력·가시성 보완:** `CoinSurfacePointer`가 `UseTool` 액션을 해석해 현재 포인터 좌표를 즉시 다시 Raycast하는 `TryGetToolUseSurfaceHit`을 제공한다. LMB가 눌리고 UI 밖의 유효 표면에 있을 때만 처리하며, 회전 중 또는 MMB가 함께 눌린 프레임은 차단한다. `ObjectDirtCleaner`는 현재 선택 도구의 A 제거력과 브러시 반경을 적용하고, 카메라에서 Coin 표면 바로 앞인지 별도 Raycast로 검사해 반대편 오염을 거리만으로 제거하지 않는다.
+- **S1-03 씬 연결:** `Coin/FixedDirt` 아래에 Collider 없는 고정 A 오염 `ObjectDirt_01~05`를 배치했다. 모두 Coin의 로컬 자식이므로 동전 회전에 함께 움직이며, `Assets/Materials/Prototype/ObjectDirt_Prototype.mat`을 공유한다. `CleaningController/ObjectDirtCleaner`에는 `CoinSurfacePointer`, `CleaningToolSelection`, 오염 5개를 Inspector 참조로 연결했다.
+- **S1-03 검증:** Unity 컴파일 후 씬 계층·참조·Missing Script를 재조회했다. Play Mode에서 마른 천의 부분 감소, 작은 솔의 한 오염 제거·제거율 `1/5`, 180도 회전한 반대편 오염 차단, 5개 오염의 복원을 자동 검증했다. 실제 Game View의 물리 LMB Hold·Drag 및 UI 위 클릭 차단은 S1-06a 통합 검증에 남긴다.
