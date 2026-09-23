@@ -158,7 +158,7 @@ namespace SqueakSqueak.Cleaning
 
             if (resetViewAction.WasPressedThisFrame())
             {
-                ResetView();
+                ResetViewToInitialState();
             }
 
             if (UpdateRotation())
@@ -242,7 +242,11 @@ namespace SqueakSqueak.Cleaning
                 maximumZoom);
         }
 
-        private void ResetView()
+        /// <summary>
+        /// 동전 자세와 카메라 Zoom만 처음 상태로 되돌립니다.
+        /// 청소 진행·도구 선택·완료 상태는 변경하지 않습니다.
+        /// </summary>
+        public void ResetViewToInitialState()
         {
             coinTransform.SetPositionAndRotation(initialCoinPosition, initialCoinRotation);
             gameplayCamera.orthographicSize = initialOrthographicSize;
