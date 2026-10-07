@@ -46,6 +46,8 @@ namespace SqueakSqueak.Cleaning
         public float RequiredPolish => requiredPolish;
         /// <summary>결과 상태 전환이 끝난 판당1회 알림입니다. 완료 판정 권한은 이 컴포넌트에만 있습니다.</summary>
         public event Action RoundCompleted;
+        /// <summary>재시작 승인 직후, 청소/뷰 초기화 전에 표현 취소·Transform 복원용 읽기 알림입니다.</summary>
+        public event Action RoundRestarting;
         /// <summary>전체 초기 상태와 입력 복원이 끝난 재시작1회 알림입니다.</summary>
         public event Action RoundRestarted;
 
@@ -104,6 +106,7 @@ namespace SqueakSqueak.Cleaning
                 return false;
             }
 
+            RoundRestarting?.Invoke();
             objectDirtCleaner.ResetAllDirt();
             surfaceContamination.ResetSurface();
             progressTracker.ResetProgress();
