@@ -8,6 +8,8 @@ Shader "SqueakSqueak/Coin Surface"
         _DirtColor("Dirt color", Color) = (0.16,0.075,0.03,1)
         _DirtySmoothness("Dirty smoothness", Range(0,1)) = 0.1
         _MaximumSmoothness("Polished smoothness", Range(0,1)) = 0.9
+        _DetailContrast("Minted pattern contrast", Range(0,0.5)) = 0.22
+        _ReliefStrength("Visual engraving normal strength", Range(0,0.1)) = 0.035
         [NoScaleOffset] _FrontSurfaceMask("Front: R dirt, G polish, A valid", 2D) = "black" {}
         [NoScaleOffset] _BackSurfaceMask("Back: R dirt, G polish, A valid", 2D) = "black" {}
         _SurfaceBounds("Local center xyz / radius w", Vector) = (0,0,0,0.5)
@@ -29,6 +31,8 @@ Shader "SqueakSqueak/Coin Surface"
             half _Smoothness;
             half _DirtySmoothness;
             half _MaximumSmoothness;
+            half _DetailContrast;
+            half _ReliefStrength;
             half _SurfaceDebug;
         CBUFFER_END
         TEXTURE2D(_FrontSurfaceMask); SAMPLER(sampler_FrontSurfaceMask);
@@ -66,7 +70,9 @@ Shader "SqueakSqueak/Coin Surface"
             output.positionOS = input.positionOS.xyz;
             output.normalOS = input.normalOS;
             output.fog = ComputeFogFactor(positions.positionCS.z);
-            output.shadowCoord = GetShadowCoord(positions);
+            #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                output.shadowCoord = GetShadowCoord(positions);
+            #endif
             return output;
         }
         // CoinSurfaceMapper와 같은 로컬 +X/+Z 좌표입니다. 뒷면도 반전하지 않습니다.
@@ -84,6 +90,51 @@ Shader "SqueakSqueak/Coin Surface"
             mask.rg *= mask.a;
             return mask;
         }
+        // 자체 절차적 문양입니다. 지오메트리/Collider/마스크 좌표는 변경하지 않습니다.
+        float MintedHeight(float2 q, half face)
+        {
+            float radius = length(q);
+            float angle = radius > 0.0001 ? atan2(q.y, q.x) : 0;
+            float rim = 1 - smoothstep(0.018, 0.043, abs(radius - 0.92));
+            float groove = 1 - smoothstep(0.004, 0.014, abs(radius - 0.72));
+            float beadAngle = round(angle * 32 / TWO_PI) * TWO_PI / 32;
+            float beads = 1 - smoothstep(0.019, 0.034, length(q - float2(cos(beadAngle), sin(beadAngle)) * 0.815));
+            float emblem;
+            if (face > 0.5)
+            {
+                float core = 1 - smoothstep(0.17, 0.205, radius);
+                float coreRing = 1 - smoothstep(0.006, 0.018, abs(radius - 0.24));
+                float rays = (1 - smoothstep(0.014, 0.04, abs(sin(angle * 4)) * radius)) *
+                    smoothstep(0.28, 0.32, radius) * (1 - smoothstep(0.47, 0.52, radius));
+                emblem = core * 0.7 + coreRing * 0.5 + rays * 0.65;
+            }
+            else
+            {
+                float diamond = abs(q.x) * 1.9 + abs(q.y) * 1.5;
+                float seal = 1 - smoothstep(0.018, 0.055, abs(diamond - 0.78));
+                float waveDistance = min(abs(q.y - sin(q.x * 7) * 0.055 - 0.17),
+                    min(abs(q.y - sin(q.x * 7) * 0.055), abs(q.y - sin(q.x * 7) * 0.055 + 0.17)));
+                float waves = (1 - smoothstep(0.01, 0.028, waveDistance)) *
+                    (1 - smoothstep(0.29, 0.33, abs(q.x))) * (1 - smoothstep(0.63, 0.7, diamond));
+                emblem = seal * 0.7 + waves * 0.65;
+            }
+            return rim * 0.85 + beads * 0.6 - groove * 0.35 + emblem;
+        }
+        half3 DecoratedNormal(Varyings input, half4 mask, half face, out float height)
+        {
+            half3 normal = NormalizeNormalPerPixel(input.normalWS);
+            height = 0;
+            if (face == 0.5) return normal;
+            float2 q = (input.positionOS.xz - _SurfaceBounds.xz) / _SurfaceBounds.w;
+            height = MintedHeight(q, face);
+            const float stepSize = 0.008;
+            float2 gradient = float2(MintedHeight(q + float2(stepSize, 0), face) - height,
+                MintedHeight(q + float2(0, stepSize), face) - height) / stepSize;
+            half strength = _ReliefStrength * lerp(0.3, 1, 1 - mask.r);
+            half3 tangent = normalize(TransformObjectToWorldDir(float3(1,0,0)));
+            half3 bitangent = normalize(TransformObjectToWorldDir(float3(0,0,1)));
+            return normalize(normal - (tangent * gradient.x + bitangent * gradient.y) * strength);
+        }
         half4 SurfaceFragment(Varyings input) : SV_Target
         {
             UNITY_SETUP_INSTANCE_ID(input);
@@ -93,8 +144,19 @@ Shader "SqueakSqueak/Coin Surface"
             // Editor GPU 매핑 검사용. 같은 샘플 경로만 표시하며 런타임 기본값은 0입니다.
             if (_SurfaceDebug > 0.5) return half4(mask.r, mask.g, face, 1);
             half clean = 1 - mask.r;
+            float height;
+            half3 normal = DecoratedNormal(input, mask, face, height);
+            half3 metalColor = _BaseColor.rgb * (1 + (height - 0.25) * _DetailContrast);
+            if (face == 0.5)
+            {
+                float2 q = input.positionOS.xz - _SurfaceBounds.xz;
+                float angle = atan2(q.y, q.x);
+                float reeding = sin(angle * 80);
+                float visibility = 1 - smoothstep(0.5, 1.5, fwidth(angle) * 80);
+                metalColor *= 0.85 + reeding * visibility * 0.08;
+            }
             SurfaceData surface = (SurfaceData)0;
-            surface.albedo = lerp(_DirtColor.rgb, _BaseColor.rgb, clean);
+            surface.albedo = lerp(_DirtColor.rgb, metalColor, clean);
             surface.metallic = lerp(_Metallic * 0.35, _Metallic, clean);
             surface.smoothness = lerp(lerp(_DirtySmoothness, _Smoothness, clean), _MaximumSmoothness, mask.g);
             surface.normalTS = half3(0,0,1);
@@ -102,9 +164,16 @@ Shader "SqueakSqueak/Coin Surface"
             surface.alpha = 1;
             InputData lighting = (InputData)0;
             lighting.positionWS = input.positionWS;
-            lighting.normalWS = NormalizeNormalPerPixel(input.normalWS);
+            lighting.normalWS = normal;
             lighting.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
-            lighting.shadowCoord = input.shadowCoord;
+            // Cascade 경계는 fragment 월드 위치로 선택합니다(URP Lit과 동일한 계약).
+            #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+                lighting.shadowCoord = input.shadowCoord;
+            #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+                lighting.shadowCoord = TransformWorldToShadowCoord(lighting.positionWS);
+            #else
+                lighting.shadowCoord = float4(0,0,0,0);
+            #endif
             lighting.fogCoord = input.fog;
             lighting.vertexLighting = VertexLighting(input.positionWS, lighting.normalWS);
             lighting.bakedGI = SampleSH(lighting.normalWS);
@@ -134,7 +203,10 @@ Shader "SqueakSqueak/Coin Surface"
         {
             UNITY_SETUP_INSTANCE_ID(input);
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-            float3 normal = NormalizeNormalPerPixel(input.normalWS);
+            half face;
+            half4 mask = ReadSurface(input, face);
+            float height;
+            float3 normal = DecoratedNormal(input, mask, face, height);
             #if defined(_GBUFFER_NORMALS_OCT)
                 float2 octNormal = saturate(PackNormalOctQuadEncode(normal) * 0.5 + 0.5);
                 return half4(PackFloat2To888(octNormal), 0);

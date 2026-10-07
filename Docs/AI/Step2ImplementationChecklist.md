@@ -6,7 +6,7 @@
 ## 현재 상태
 
 - **S2-02a/b/c 통과 (2026-10-07, CPU/컴포넌트 API·GPU 대조·Windows64 빌드 기준), 독립 최종 검토 통과.** B 집계·HUD/완료를 CPU 마스크로 이관했다. 실제 입력/체험·성능은 미검증이다.
-- **S2-03a 구현·검증 완료 (2026-10-07, Editor/API·GPU·카메라 기준), 독립 검토 대기.** 사용자 요청 일시중단 후 재개해 지역 광택·전용 셰이더·실제 씬 연결과 자원 검증을 마쳤다. 한 점 Hold는 전체 광택을 완료하지 못하며 지역 양면 상태를 화면/HUD/완료가 함께 읽는다. b는 별도 전달 대기이고 새 Windows 빌드·실제 입력/외부PC·성능은 미실행이다.
+- **S2-03a/b 구현·검증 완료 (2026-10-07, Editor/API·GPU·카메라·Windows64 빌드 기준), 독립 최종 검토 대기.** 지역 양면 광택과 태양/물결 문양·테두리·금속 반사·조명을 연결했다. 기본/기울임/줌 캡처와 엄격한 GPU 대조, 확대 cascade 그림자 수정·회귀 및 새 비개발 빌드를 확인했다. 실제 입력/외부PC·3~5분·성능은 미검증이며 다음 단계는 S2-04a 전달 대기다.
 - 사용자 승인: Step 1 실제 플레이 검증을 보류하고 Step 2 선행. `s1-06-f2`는 계속 미검증이며 Step 2 첫 실행 가능한 빌드에서 함께 확인한다.
 - 기준점: Step 1 변경·씬·도구·결과 기록은 `34b68b3` (`fix: [s1-06]`), Step 2 준비 문서는 `d0380ee` (`docs: [s2-00]`)에 보존했다. 기존 빌드는 Git 제외 상태로 보존하며 초기 상태는 작업 시작 때 다시 조회한다.
 
@@ -27,7 +27,7 @@
 | [x] | S2-02b | 접촉 기반 B 제거·드래그 보간 | 2026-10-07 CPU68·실제 소유자 API11조건 통과; 시간/경로·면/반경·재진입 검사. 물리 입력은 보류 |
 | [x] | S2-02c | B 집계·HUD·완료 이관 | 2026-10-07 집계/GPU/완료 API106·뷰 복원5조건 및 새 Windows64 빌드 통과; 실제 입력 보류 |
 | [x] | S2-03a | 지역 광택·통합 셰이더 | 2026-10-07 CPU 광택61·집계/GPU/완료110·셰이더19·수명74/25 통과; 지역 양면 화면·면적 평균, 한 점 완료 불가. 실제 입력/빌드는 보류 |
-| [ ] | S2-03b | 동전 외형·조명·재질 정리 | 앞뒤 구분·무늬·금속 반사, A 부착/가시성·Collider 일치, 공유 에셋 보존 |
+| [x] | S2-03b | 동전 외형·조명·재질 정리 | 2026-10-07 기본 조명 외형7조건·동일UV 회전 반사·캡처15장·확대 그림자48표본, GPU19조건 및 새 Windows64 빌드 통과. 원판/A5/공유 에셋 보존; 실제 입력 보류 |
 | [ ] | S2-04a | 도구별 접촉·A 제거 시각 효과 | 도구 차이 구분, 커서 범위 유지, 효과가 Raycast·진행률에 간섭하지 않음 |
 | [ ] | S2-04b | 마찰·제거·완료 소리 | 라이선스/임시 상태 기록, 중첩·끊김 확인, UI/MMB/포커스/완료·재시작에서 지속음 정지 |
 | [ ] | S2-05a | 조작·도구 역할·앞뒤 안내와 HUD | 1280×720에서 읽힘, 개발자 설명 없이 다음 행동 파악, UI 클릭의 청소 누출 없음 |
@@ -52,7 +52,7 @@
 | F / 재시작 / 연출 중 재시작 | F는 자세·줌만, 재시작은 전체 복원·연출 취소 | 뷰/상태 복원 API 통과(02c); 물리F 미검증·연출은05 미구현 |
 | 첫 청소·포커스 왕복·완료 시간 | 실제 변화부터 시작, 포커스 이탈 제외, 완료 후 고정 | 실제 변경 이벤트→타이머 시작·합성 경과 시간 고정 API 통과(02c); 실제 시간 누적/포커스 왕복 미검증 |
 | 완료→재시작→재완료 2판 | 입력·UI·이벤트·마스크·효과·소리 잔류/누적 없음 | 브러시/완료/재시작 API2판·B 텍스처 재사용 통과(02c); 물리 입력/효과/소리 미검증 |
-| Windows 화면·제품명·소리·프레임 | 1280×720 고정창, 셰이더 정상, 기기·측정 구간 포함 성능 기록 | 02c Windows64 빌드 성공·제품/화면 설정 유지; 실행 화면/소리/성능 미검증 |
+| Windows 화면·제품명·소리·프레임 | 1280×720 고정창, 셰이더 정상, 기기·측정 구간 포함 성능 기록 | 03b Windows64 비개발 빌드 성공·제품/화면 설정 유지·동전 셰이더 경고0; 플레이어 실행 화면/소리/성능 미검증 |
 | 설명 없는 외부 체험 | 키·도구 역할·앞뒤·완료 흐름 이해, 시간·막힌 지점·만족도 기록 | 미실행 |
 
 `s1-06-f2`는 입력·F·포커스·시간·반복·Windows 화면 및 플레이 실측 근거를 모아 별도로 해소 판정한다. 이 표의 API 검사 통과만으로 해소하지 않는다.
@@ -156,6 +156,18 @@
 - **그림자·수명·복원:** CoinBody의 원래 설정은 **투영 Off·수신 On**이다. 기존 그림자 투영이 있었다고 주장하지 않는다. 임시 casting On/조명45°·30° 비교에서 실제 ShadowCaster 출력 평균 RGB 차이 `0.002710544`를 확인하고 Off/원래 조명으로 복원했다. 변경된 `BeginLifecycle()`74→별도 Editor Step2회→`VerifyLifecycleCleanup()`25조건 통과(지역 광택0/.4/1 설정/Reset·RG업로드·텍스처18개/임시 소유자6개 실제 해제, 실제 동전2개만 유지). 이후 마스크 양면 바인딩·debug0·기본 회전/Zoom2.4·null camera target·Dirty=false를 확인하고 Stop했다. 컴파일/임포트 완료·최종 Console 오류/경고0, 로그 수동 삭제 없음.
 - **재실행·한계·다음:** 새 CleaningRoom Play→Pause에서 렌더 검사 메뉴/API를 실행하고 `.utmp/s203a-visual-{before,local-after,back-untouched,back-local-after,shadow-probe,polish-only-before,polish-only-after}.png`를 확인한다. 수명 검사는 같은 새 판에서 Begin→별도 Step2회→Cleanup 후 Stop한다. 새 진단은 Editor 전용이며 런타임 GPU 읽기/Shader.Find/패키지를 추가하지 않았다. 현재 동적 Cylinder와 URP PC·D3D12 화면 검증이며 임의 새 Mesh·베이크 lightmap/Meta·다른 플랫폼을 인증하지 않는다. 기존 Coin_Prototype·Data·Packages·ProjectSettings는 보존한다. 단순 외형/조명·앞뒤 무늬·실제 플레이 가독성 개선과 새 Windows 빌드는 b; 실제 입력/3~5분/성능/외부PC·f2는 계속 미검증이다. a만 로컬 커밋한 뒤 b 전달을 기다린다.
 - **최종 보존 조회:** 법선/캡 허용값을 좌표 계약의 ±.999/높이.001에 맞춘 최종 셰이더로 렌더19조건을 다시 확인했다. Stop 뒤 저장된 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음·객체35·Missing Script0·깨진 청소 참조0·런타임 마스크0·Console 오류/경고0. Coin(0,1.2,0)/회전0·body scale(2,.1,2)·Zoom2.4·투영 Off/수신 On 유지, 전용 머티리얼의 저장된 shader 의존성도 확인했다. `git diff --check` 통과·기존 Coin_Prototype/Data/Packages/ProjectSettings diff 없음·캡처 Git 제외 확인 후 a 코드/씬/전용 에셋/검사/meta·문서만 별도 한국어 로컬 커밋한다. README/ROADMAP에는 현재 기능 상태만 반영하고 세부 기록은 이 문서에 유지한다.
+
+### 2026-10-07 / S2-03b / 통과 (Editor/API·GPU·화면·빌드 기준)
+
+- **기준·범위:** `main ab7a8c0`·작업 트리 깨끗함, 해당 저장 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음·Console 오류/경고0. 기존 Cylinder Mesh/Convex Collider/로컬 좌표/앞뒤 마스크와 A5개 부착을 보존한다. 전용 셰이더의 자체 절차적 태양/물결 무늬·테두리/각인 법선으로 앞뒤를 구분하고, Coin_Surface와 관련 조명만 에디터 API로 조정한다. 외부 에셋·장식 Collider·새 런타임 상태/프레임워크·도구 속도/UI/소리는 추가하지 않는다.
+- **검증 계획:** 실제 기본 카메라의 앞뒤·기울임·오염→지역 청소→청결/광택 캡처와 같은 UV의 회전별 반사 차이를 확인한다. a의 엄격한 CPU 마스크→GPU 채널 대조를 보존하고 관련 씬/참조/A 적중·완료/재시작 API를 검사한다. 새 제외 경로 Windows64 비개발 빌드와 BuildReport/기존 패키지·새 셰이더 경고/산출물/preloadedAssets 보존을 확인한다. 실제 입력/3~5분/성능/외부PC·f2 미검증 유지, b만 별도 한국어 로컬 커밋·push 없음.
+- **구현·저장:** 자체 절차적 태양(앞)/마름모·물결(뒤), 구슬 테두리·홈·옆면 줄무늬와 시각 법선을 추가했다. 실제 지오메트리는 변위하지 않으며 원판 Mesh/Convex Collider/로컬 +X/+Z·앞뒤 마스크/A 위치를 유지한다. 깊이 법선에는 같은 시각 법선을 쓰고 그림자 실루엣은 원래 원판이다. Unity API로 전용 Coin_Surface의 색(.56,.46,.30)/metallic .88/smoothness .38, owner 오염색(.11,.09,.065)/dirty .08/max .78, 주광 .95·약한 청색 무그림자 보조광 .25를 저장/재조회했다. 기존 Coin_Prototype·렌더 설정·Data·패키지를 변경하지 않았다.
+- **검사 오류·보안 대응:** 첫 외형 검사는 A에 Collider가 있다고 가정해 실패했다. 조회 결과 기존 Coin 하위 Collider는 CoinBody 하나이고 A는 최근접 Coin 적중+기존 거리 가시성 API를 사용한다. 제품을 변경하지 않고 검사 조건을 바로잡았다. MCP 명령에서 internal 캡처 helper 접근/Reflection 사용은 컴파일·권한 제한으로 실행되지 않았고 작은 Editor 검사를 사용했다. 인증서 불일치 창은 사용자가 No로 닫았으며 검증 우회/패키지 교체 없이 기존 MCP 정상 조회를 확인했다.
+- **확대 그림자 결함·수정:** Zoom1.6의 B0/P1 캡처에서 굵은 검은 다각형 띠를 발견했다. 일시 SSAO Off에도 남고 주광 shadow Off에서 사라졌다. 설치된 URP LitForwardPass와 대조해 cascade 좌표를 모든 정점에서 보간하던 경로를 URP 조건부 vertex/fragment `TransformWorldToShadowCoord(positionWS)` 계약으로 수정했다. 기본 조명/SSAO·패키지 코드는 유지했다. 수정 후 확대 캡처에서 띠 소멸을 육안 확인하고 같은 평면 반경.6의 shadow on/off **48표본·최대 채널 차이 5.289912e-7**로 회귀 통과했다. 임시 SSAO 진단 코드는 제거하고 확대 그림자 회귀만 남겼다. 수정 전 `.utmp/s203b-diagnostic-{ssao-on,ssao-off,shadow-off}.png`와 수정 후 `s203b-diagnostic-current-shadow-{on,off}.png`를 Git 제외로 보존한다.
+- **화면·회귀:** `CoinAppearanceValidation.Run()` **7조건**, A 위치 최근접 Coin/가시성 앞5·뒤0, 원판/Collider/배율 보존 통과. 기본 조명에서 B0의 동일UV81점 RGB별 polished-minus-matte 반응 평균 절댓값 .05644434, 0→35° 같은 표본 반응 차이 .06741607로 밝기 증분만이 아닌 거칠기/반사 변화를 확인했다. 정면 표본 HDR 초과0/81·최대.205832이며 전체 픽셀/성능 측정은 아니다. 최종 `CoinSurfaceRenderingValidation.Run()` **19조건·2302표본(1182/824/296)·GPU 채널 오차0**, 접촉 재투영7.629395e-5픽셀·hull 제외0. 일시 ShadowCaster 변화 .001533983·지역 광택만 PBR 차이 .02125493. 집계/GPU/완료110조건·2판·뷰 복원5조건 통과. a 수명74/25는 재실행하지 않았으며 이번에 자원 소유/생성 코드를 변경하지 않았다.
+- **캡처·재실행:** 실제 기본 PC 카메라/Deferred/SSAO·조명으로 1280×720의 `.utmp/s203b-visual-{front-dirty,front-local,front-clean-matte,front-clean-polished,back-dirty,back-local,back-clean-polished,tilt35-dirty,tilt35-local,tilt35-clean-matte,tilt35-clean-polished,tilt65-clean-polished,rim90-clean-polished,zoom16-clean-polished,zoom32-clean-polished}.png` 15장을 저장/육안 확인했다. Overlay HUD가 없는 Camera.Render 월드 화면이다. 새 CleaningRoom Play→Pause에서 `CoinAppearanceValidation.Run()` 및 `RunZoomShadowRegression()` 메뉴/API를 실행하고 finally 복원을 확인한 뒤 Stop한다. dt300과 전체 B0/P0/P1 주입은 합성 비교이며 실제 입력/체험 시간 증거가 아니다.
+- **새 빌드·보존:** `BuildPipeline.BuildPlayer`, Windows64/Mono·D3D12/D3D11·BuildOptions.None·CleaningRoom만 활성, 새 `Builds/Windows/Step2-S2-03-20261007/SqueakSqueak.exe`. 최신 BuildReport **Succeeded·오류0·기존 경고485·128,729,201바이트·54.2794078초**, 동전 셰이더 메시지0. 경고는 기존 Inference/Sentis(ConvGeneric460·modulus7·divides2·loop1·signed15)이며 Console 오류0/기존 패키지 경고25를 보존했다. MCP 응답은 출력 경로 재사용 방지 오류였으나 동일 새 경로의 실제 최신 성공 보고서/시간·exe/Data/UnityPlayer/Mono 산출물로 성공을 확인했고 재빌드하지 않았다. Input System 임시 preloaded GUID가 디스크에만 남은 것을 확인해 원래 빈 상태를 PlayerSettings API로 복원했으며 ProjectSettings diff 없음.
+- **종료·인계:** 저장된 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음·객체36·Missing Script0·깨진 청소 참조0·잔여 마스크0·preload0, Coin(0,1.2,0)/회전0·body(2,.1,2)·Zoom2.4 및 실제 전용 머티리얼/셰이더 의존성을 재조회했다. 새 Editor 검사 meta를 포함해 b만 한국어 로컬 커밋하고 독립 최종 검토를 기다린다. 플레이어 실행·실제 LMB/UI/MMB/F/Wheel/포커스·3~5분·성능·외부PC·s1-06-f2는 미검증 유지. S2-04/UI/소리/도구 수치 작업이나 push는 하지 않았다.
 
 ## 스텝별 검토 결과
 

@@ -185,22 +185,22 @@ namespace SqueakSqueak.EditorValidation
             }
         }
 
-        private static Color[] Capture(Camera camera, string path)
+        internal static Color[] Capture(Camera camera, string path, int width = Width, int height = Height)
         {
             var previous = RenderTexture.active; var original = camera.targetTexture;
-            var target = RenderTexture.GetTemporary(Width, Height, 24, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             Texture2D read = null; Texture2D png = null;
             try
             {
                 camera.targetTexture = target; camera.Render(); RenderTexture.active = target;
-                read = new Texture2D(Width, Height, TextureFormat.RGBAFloat, false, true) { hideFlags = HideFlags.DontSave };
-                read.ReadPixels(new Rect(0, 0, Width, Height), 0, 0); read.Apply(false, false);
+                read = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true) { hideFlags = HideFlags.DontSave };
+                read.ReadPixels(new Rect(0, 0, width, height), 0, 0); read.Apply(false, false);
                 var pixels = read.GetPixels();
                 if (path != null)
                 {
                     var display = new Color[pixels.Length];
                     for (var i = 0; i < pixels.Length; i++) display[i] = pixels[i].gamma;
-                    png = new Texture2D(Width, Height, TextureFormat.RGBA32, false) { hideFlags = HideFlags.DontSave };
+                    png = new Texture2D(width, height, TextureFormat.RGBA32, false) { hideFlags = HideFlags.DontSave };
                     png.SetPixels(display); png.Apply(false, false); File.WriteAllBytes(path, png.EncodeToPNG());
                 }
                 return pixels;
@@ -219,7 +219,7 @@ namespace SqueakSqueak.EditorValidation
             for (var i = 0; i < a.Length; i++) sum += Math.Abs(a[i].r - b[i].r) + Math.Abs(a[i].g - b[i].g) + Math.Abs(a[i].b - b[i].b);
             return sum / (3d * a.Length);
         }
-        private static void Apply(CoinSurfaceContamination owner, CoinSurfacePointer pointer, CoinSurfaceFace face, Vector2 uv, float dt)
+        internal static void Apply(CoinSurfaceContamination owner, CoinSurfacePointer pointer, CoinSurfaceFace face, Vector2 uv, float dt)
         {
             var bounds = pointer.SurfaceLocalBounds; var matrix = pointer.SurfaceLocalToWorldMatrix;
             var local = bounds.center + new Vector3((2f * uv.x - 1f) * bounds.extents.x,

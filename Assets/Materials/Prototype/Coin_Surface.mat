@@ -33,14 +33,16 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _DetailContrast: 0.22
     - _DirtySmoothness: 0.1
     - _MaximumSmoothness: 0.9
-    - _Metallic: 0.65
-    - _Smoothness: 0.55
+    - _Metallic: 0.88
+    - _ReliefStrength: 0.035
+    - _Smoothness: 0.38
     - _SurfaceDebug: 0
     - _SurfaceHalfHeight: 1
     m_Colors:
-    - _BaseColor: {r: 0.72, g: 0.45999992, b: 0.15999997, a: 1}
+    - _BaseColor: {r: 0.56, g: 0.46, b: 0.3, a: 1}
     - _DirtColor: {r: 0.15999997, g: 0.07499998, b: 0.03, a: 1}
     - _SurfaceBounds: {r: 0, g: 0, b: 0, a: 0.5}
   m_BuildTextureStacks: []
