@@ -8,7 +8,8 @@
 - **S2-02a/b/c 통과 (2026-10-07, CPU/컴포넌트 API·GPU 대조·Windows64 빌드 기준), 독립 최종 검토 통과.** B 집계·HUD/완료를 CPU 마스크로 이관했다. 실제 입력/체험·성능은 미검증이다.
 - **S2-03a/b 통과 (2026-10-07, Editor/API·GPU·카메라·Windows64 빌드 기준), 독립 최종 검토 통과.** 지역 양면 광택과 태양/물결 문양·테두리·금속 반사·조명을 연결했다. 확대 그림자 결함을 수정하고 독립 회귀·자원 해제까지 확인했다. 실제 입력/외부PC·3~5분·성능은 미검증이다.
 - **S2-04a 구현·검증 완료 (2026-10-07, Editor/API·카메라 기준).** 실제 변화 이벤트 기반 천/솔/광택천 접촉 선과 A 제거 파편을 연결했고 자체132조건·기존 청소 회귀·실제 파괴/구독 해제를 확인했다. a `a9f88e3`의 독립 최종 검토도 통과했다.
-- **S2-04b 구현·제한부 검증 완료 (2026-10-07, Editor/API·Windows64 빌드 기준).** 자체 임시 WAV5·고정 Source3, 사용/제거/완료·재시작 알림과88조건·관련 회귀·실제 파괴를 확인했다. 출력 표본은0이므로 실제 오디오 출력/청취는 미검증이다. b `f1e711b`의 독립 코드/API·빌드 검토를 마쳤다. 출력 검증은 `s2-04-f4`로 남기며, 다음 독립 작업은 S2-05a다(미착수).
+- **S2-04b 구현·제한부 검증 완료 (2026-10-07, Editor/API·Windows64 빌드 기준).** 자체 임시 WAV5·고정 Source3, 사용/제거/완료·재시작 알림과88조건·관련 회귀·실제 파괴를 확인했다. 출력 표본은0이므로 실제 오디오 출력/청취는 미검증이다. b `f1e711b`의 독립 코드/API·빌드 검토를 마쳤다. 출력 검증은 `s2-04-f4`로 남긴다.
+- **S2-05a 구현·제한부 검증 완료 (2026-10-07, uGUI/API·실제 Overlay 화면 기준).** 조작/도구 역할·선택/양면/다음 행동과 진행·목표값 안내를 연결했다. UI175조건·기존 집계/완료110·뷰5조건과1280×720 캡처6장을 확인했다. 물리 입력·초보 이해도/외부PC 글꼴은 미검증이므로 a 체크는 비워 둔다. 다음 독립 작업은 S2-05b 결과·최소 보관 연출이다(전달 대기).
 - 사용자 승인: Step 1 실제 플레이 검증을 보류하고 Step 2 선행. `s1-06-f2`는 계속 미검증이며 Step 2 첫 실행 가능한 빌드에서 함께 확인한다.
 - 기준점: Step 1 변경·씬·도구·결과 기록은 `34b68b3` (`fix: [s1-06]`), Step 2 준비 문서는 `d0380ee` (`docs: [s2-00]`)에 보존했다. 기존 빌드는 Git 제외 상태로 보존하며 초기 상태는 작업 시작 때 다시 조회한다.
 
@@ -32,7 +33,7 @@
 | [x] | S2-03b | 동전 외형·조명·재질 정리 | 2026-10-07 기본 조명 외형7조건·동일UV 회전 반사·캡처15장·확대 그림자48표본, GPU19조건 및 새 Windows64 빌드 통과. 원판/A5/공유 에셋 보존; 실제 입력 보류 |
 | [x] | S2-04a | 도구별 접촉·A 제거 시각 효과 | 2026-10-07 자체132조건·카메라15장·청소 회귀11/110/5·실제 파괴5객체/구독 해제 통과. 같은 프레임 A/표면 양 순서·표현 on/off 결과 동일·2판·고정 자원/차단; 물리 입력/성능 보류 |
 | [ ] | S2-04b | 마찰·제거·완료 소리 | 2026-10-07 API88조건·시각132/집계110 회귀·실제 파괴5객체 및 새 Windows64 빌드 통과. 구현 및 독립 코드/API·빌드 검토 완료. 출력0 원인·실제 출력/청취 확인은 s2-04-f4 대기 |
-| [ ] | S2-05a | 조작·도구 역할·앞뒤 안내와 HUD | 1280×720에서 읽힘, 개발자 설명 없이 다음 행동 파악, UI 클릭의 청소 누출 없음 |
+| [ ] | S2-05a | 조작·도구 역할·앞뒤 안내와 HUD | 2026-10-07 UI175·집계110·뷰5조건/Overlay6장 통과. 실제 Raycast·onClick/읽기 전용·2판 확인; 물리 입력·초보 이해도·외부PC 글꼴 대기 |
 | [ ] | S2-05b | 결과·최소 보관·재시작 | 완료 1회, 결과 고정, 동전 1개 연출, 연출 중 재시작·중복 클릭 안전, 모든 상태 복원 |
 | [ ] | S2-06a | 수치 회귀·통합·성능 검사 | 아래 검사표 및 2판 반복, 30/60/120Hz 비교, 자원·이벤트 누적 없음, 새 오류 분류 |
 | [ ] | S2-06b | Windows x64 빌드·실제 입력 | 새 제외 경로, BuildReport·Player 로그, 실제 f2 시나리오·셰이더·소리·화면 검사 |
@@ -197,6 +198,16 @@
 - **새 빌드:** `Builds/Windows/Step2-S2-04-20261007/SqueakSqueak.exe`, Windows64/Mono·D3D12/D3D11·비개발·CleaningRoom만. 실제 최신 BuildReport **Succeeded·오류0·기존 경고485·129,034,321바이트·32.1167516초**, 완료17:16:23 KST. 경고는 Inference ConvGeneric460/modulus7/divides2/loop1/signed15로 S2-03과 동일, 동전/효과 shader 메시지0. MCP는 경고 때문에 isError를 반환했으나 실제 성공 보고서/시간·exe(667136)/UnityPlayer.dll(36730288)/Assembly-CSharp.dll(56320)·Data/Mono 산출물을 확인했으며 재빌드하지 않았다. 기존 산출물 보존/Git 제외, 새 실행/입력·소리·외부PC는 미검증이다.
 - **저장·종료:** Stop 후 Dirty 사본 `.utmp/s204b-scene-state.unity`와 작업 씬 diff0 확인 뒤 해당 씬만 저장했다. 빌드 임시 Input System preload가 메모리0/디스크1로 남아 PlayerSettings API로 빈 상태를 복원했다. SaveAssetIfDirty는 ProjectSettings를 저장하지 않았고, 지속 객체를 InternalEditorUtility에 직접 전달한 진단은 도구 오류 `You may not pass in objects that are already persistent`81건을 남겼다(스택은 동적 CommandScript→SaveToSerializedFileAndForget, 런타임 기능 오류 아님). 해당 시도를 반복하지 않았으며 관련 없는 dirty Assets가0임을 확인한 뒤 SaveAssets로 디스크까지 저장해 ProjectSettings/Packages diff0을 확인했다. 오류81·기존 패키지 경고25를 먼저 기록했고 설정 복원 뒤 새 Play 시작 검증에서 관찰자 활성/미완료·Source3 무재생·preload0, Stop 뒤 저장 Edit Mode·Dirty=false·Console0/0을 확인했다(수동 로그 삭제 없음).
 - **인계·재실행:** 씬 객체45·Missing/깨진 참조/잔여 BMask/임시 객체0·Source3 정지/음량0·선3 비활성/파편0·Coin(0,1.2,0)/회전0·Zoom2.4·preload0. 새 Play→Pause에서 `Squeak Squeak/Validation/S2-04b Audio Feedback` 또는 Run, 수명은 Begin→Step2회→Verify, 출력은 BeginOutput→OutputResult 확인 후 Stop한다. b 코드/씬/WAV/필수 meta·기록만 별도 한국어 로컬 커밋하며 독립 최종 검토를 기다린다. 실제 입력/청취·음질/클릭·성능·3~5분·외부PC·f2는 미검증 유지. S2-05/UI/보관/튜닝·패키지·push 없음.
+
+### 2026-10-07 / S2-05a / 구현 완료·검증 대기 (uGUI/API·현재 환경 화면 통과)
+
+- **기준·범위:** `main ce036e5`·작업 트리 깨끗함, 해당 Unity/CleaningRoom 저장 Edit Mode·컴파일/임포트 없음·Console0/0. §3.5와 s2-04-f1~f5를 확인했다. 기존 uGUI/HUD·도구 버튼/선택·오염/완료/입력 수치는 유지하고 안내·표시만 확장한다. b 완료·보관 연출/새 Windows 빌드·패키지·튜닝·외부 폰트는 추가하지 않는다.
+- **변경:** 기존 ToolSelectionCanvas에 안내7객체를 추가했다. 좌상단 큰 먼지/얼룩 제거·광택과 실제 소유자 목표값/시간, 상단 선택 도구·앞뒤/다음 행동, 우상단 Mouse Move/LMB Hold·Drag/MMB Drag/Wheel/F 안내를 배치했다. 도구 버튼에 두 줄 역할을 표시하고 기존 강조/콜백을 유지한다. 안내·장식은 raycastTarget=false(기존 ToolPanel 배경 포함), 실제 버튼/결과 모달은 입력 차단을 유지한다. HUD는 소유자 읽기 속성만 사용하며 진행·완료·시간·입력을 쓰지 않는다. 진행률 불변 시 목표 변경도 갱신한다.
+- **검증:** 새 Play→Pause의 CleaningHudValidation.Run() 최종175조건 및 반복175조건 통과. 실제 EventSystem Raycast/버튼 onClick·선택 강조·청소/타이머 불변·안내/여백 통과·앞/뒤/옆/Invalid·A→B→광택·목표 캐시·100:00·글리프/텍스트 overflow/화면 bounds·2판 완료/재시작 콜백을 검사했다. 면/진행/시간은 합성 상태이며 물리 LMB/UI 차단 검증을 대신하지 않는다. 기존 집계/GPU/완료110조건(2판)·뷰 복원5조건 통과; 기존 검사의 HUD 기대 문자열만 새 표시/소유자 목표에 맞췄다.
+- **화면:** native GameView1280×720과 ScreenCapture로 Overlay 포함 캡처6장(.utmp/s205a-ui-initial/brush/back-zoom/max/result/restart.png)을 실제 확인했다. 도구3종, 앞/뒷면·Zoom1.6, 100%·100:00, 결과/초기 복원에서 글자 잘림·동전 작업 영역 겹침 없음. max 캡처는 완료 소유자를 일시 비활성화한 합성 표시 상태이며 판정 로직 변경이 아니다. GameView 창 위치/크기는 변경하지 않았고 SessionState로 원래 FreeAspect 선택0을 domain reload 후 복원, 직접 만든 임시 프리셋만 제거했다. 캡처는 Git 제외이며 Camera.Render를 UI 근거로 쓰지 않았다.
+- **검사 보정:** 처음 검사 경로가 Canvas를 가정해 null이었으므로 HUD의 실제 부모 Canvas로 한정했다. Play 직후 초기화 전 검사에서 비직렬화 PropertyBlock/InputAction 상태 오류가 발생해 새 세션 초기화 완료 후 검사했다. 패널 여백 좌표가 실제 버튼 안이었음을 Raycast로 확인하고 실제 아래 여백으로 보정했다. 새 Play에서는 재현하지 않았고 최종 전체 검사/반복과 Console0/0을 확인했다. 마지막 추가 읽기는 상속 singleton의 조회 플래그 누락으로 실패했으며 기존 Editor 캡처/복원 helper로 재확인해 선택0·프리셋7·임시 제목0을 확인했다. 지연 중 인증서 호스트 불일치 창은 사용자가 No로 닫았고 검증 우회/패키지 변경은 하지 않았다. Console 수동 삭제·씬 이름/코어 동작 변경은 하지 않았다.
+- **종료·재실행:** Stop 후 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음, 객체52·Missing/깨진 청소 참조/잔여 마스크0·Source3 정지/음량0·기본 자세/Zoom2.4·preload0·Console0/0. 저장 씬과 최종 API 사본 직렬화 diff0을 확인했다. 신규 검사/meta는 Editor 전용이다. 새 Play 초기화 완료→Pause→ConfigureCapture1280(또는 먼저 Edit Mode에서 설정)→메뉴 S2-05a HUD/Run, 마지막 Stop→RestoreCaptureSize; 합성 캡처 PrepareCapture는 검사 후 전용 세션에서만 사용하고 Stop으로 복원한다. Scene/Data/Materials/Packages/ProjectSettings의 UI 외 의미 변경은 없다.
+- **글꼴·제한:** 기존 LegacyRuntime 동적 fontNames=Arial에서 요청 한글 글리프 누락0을 확인했다. 새 폰트/상용 시스템 글꼴 복사는 하지 않는다. 현재 환경의 실제 표시를 검사하되 OS 대체 글꼴 의존 가능성/새 플레이어·외부PC 글꼴은 b 이후 확인한다. 물리 입력/초보 이해도·s1-06-f2와 실제 소리 출력0(s2-04-f4)은 계속 미검증이다.
 
 ## 스텝별 검토 결과
 

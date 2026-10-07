@@ -40,6 +40,10 @@ namespace SqueakSqueak.Cleaning
         private float requiredPolish = 0.7f;
 
         public bool IsCompleted { get; private set; }
+        // 표시/UI는 판정에 쓰이는 값을 읽습니다. 별도 목표/완료 상태를 소유하지 않습니다.
+        public float RequiredObjectDirtRemovalRatio => requiredObjectDirtRemovalRatio;
+        public float RequiredSurfaceDirtRemovalRatio => requiredSurfaceDirtRemovalRatio;
+        public float RequiredPolish => requiredPolish;
         /// <summary>결과 상태 전환이 끝난 판당1회 알림입니다. 완료 판정 권한은 이 컴포넌트에만 있습니다.</summary>
         public event Action RoundCompleted;
         /// <summary>전체 초기 상태와 입력 복원이 끝난 재시작1회 알림입니다.</summary>

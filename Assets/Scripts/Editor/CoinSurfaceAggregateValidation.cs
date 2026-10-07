@@ -123,8 +123,8 @@ namespace SqueakSqueak.EditorValidation
             void CheckHud()
             {
                 Call(hud, "Refresh");
-                Check(Get<Text>(hud, "surfaceDirtText").text == $"B 표면 제거: {Mathf.RoundToInt(tracker.SurfaceDirtRemovalRatio * 100f)}%" &&
-                    Get<Text>(hud, "polishText").text == $"광택: {Mathf.RoundToInt(tracker.Polish * 100f)}%",
+                Check(Get<Text>(hud, "surfaceDirtText").text == $"얼룩 제거: {Mathf.RoundToInt(tracker.SurfaceDirtRemovalRatio * 100f)}% / 목표 {Mathf.RoundToInt(completion.RequiredSurfaceDirtRemovalRatio * 100f)}%" &&
+                    Get<Text>(hud, "polishText").text == $"광택: {Mathf.RoundToInt(tracker.Polish * 100f)}% / 목표 {Mathf.RoundToInt(completion.RequiredPolish * 100f)}%",
                     "HUD 현재 마스크/광택 표시", ref checks);
             }
             owner.CleaningApplied += OnApplied;
