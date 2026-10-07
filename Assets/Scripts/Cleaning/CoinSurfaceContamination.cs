@@ -86,6 +86,10 @@ namespace SqueakSqueak.Cleaning
         /// B 타입 오염 또는 광택이 실제로 변경됐을 때 발생합니다.
         /// </summary>
         public event Action CleaningApplied;
+        /// <summary>실제 B/광택 변화1회의 접촉·도구·변화 종류입니다. 입력 승인이나 추가 청소를 요청하지 않습니다.</summary>
+        public event Action<SurfaceCleaningChange> SurfaceContactChanged;
+        /// <summary>ResetSurface가 끝날 때1회 발생합니다. 청소 변화/타이머 시작 이벤트가 아닙니다.</summary>
+        public event Action SurfaceReset;
 
         private void Awake()
         {
@@ -137,6 +141,8 @@ namespace SqueakSqueak.Cleaning
                 BreakSurfaceContact();
                 return false;
             }
+            var dirtBefore = SurfaceMask.CurrentDirtSum;
+            var polishBefore = SurfaceMask.CurrentPolishSum;
             var changed = surfaceStroke.Apply(SurfaceMask, contact, surfacePointer.SurfaceLocalToWorldMatrix,
                 surfacePointer.SurfaceLocalBounds, tool, tool.BrushRadius, tool.SurfaceDirtRemovalPerSecond, deltaTime, tool.PolishGainPerSecond);
             if (!surfaceStroke.LastFrameAccepted) return false;
@@ -145,6 +151,8 @@ namespace SqueakSqueak.Cleaning
             if (changed)
             {
                 ApplyVisuals();
+                SurfaceContactChanged?.Invoke(new SurfaceCleaningChange(contact, tool,
+                    SurfaceMask.CurrentDirtSum != dirtBefore, SurfaceMask.CurrentPolishSum != polishBefore));
                 CleaningApplied?.Invoke();
             }
 
@@ -161,6 +169,7 @@ namespace SqueakSqueak.Cleaning
                 UploadSurfaceMasks();
             }
             ApplyVisuals();
+            SurfaceReset?.Invoke();
         }
 
         private void EnsureSurfaceMasks()

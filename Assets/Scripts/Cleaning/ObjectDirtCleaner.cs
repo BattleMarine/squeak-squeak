@@ -29,6 +29,10 @@ namespace SqueakSqueak.Cleaning
         /// A 타입 오염이 실제로 감소했을 때 발생합니다.
         /// </summary>
         public event Action CleaningApplied;
+        /// <summary>A가 실제로 감소한 호출1회의 표면 적중입니다. CurrentTool은 콜백 안에서 읽을 수 있습니다.</summary>
+        public event Action<RaycastHit> ContactCleaningApplied;
+        /// <summary>A의 Removed 알림1회를 중계합니다. 추가 제거/진행 상태를 만들지 않습니다.</summary>
+        public event Action<ObjectDirt> DirtRemoved;
 
         private void Awake()
         {
@@ -115,6 +119,7 @@ namespace SqueakSqueak.Cleaning
 
             if (affectedCount > 0)
             {
+                ContactCleaningApplied?.Invoke(surfaceHit);
                 CleaningApplied?.Invoke();
             }
 
@@ -136,6 +141,7 @@ namespace SqueakSqueak.Cleaning
         private void HandleDirtRemoved(ObjectDirt dirt)
         {
             RemovedDirtCount = Mathf.Min(InitialDirtCount, RemovedDirtCount + 1);
+            DirtRemoved?.Invoke(dirt);
         }
 
         private void OnValidate()

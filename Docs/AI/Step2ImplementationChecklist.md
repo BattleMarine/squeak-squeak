@@ -6,7 +6,8 @@
 ## 현재 상태
 
 - **S2-02a/b/c 통과 (2026-10-07, CPU/컴포넌트 API·GPU 대조·Windows64 빌드 기준), 독립 최종 검토 통과.** B 집계·HUD/완료를 CPU 마스크로 이관했다. 실제 입력/체험·성능은 미검증이다.
-- **S2-03a/b 통과 (2026-10-07, Editor/API·GPU·카메라·Windows64 빌드 기준), 독립 최종 검토 통과.** 지역 양면 광택과 태양/물결 문양·테두리·금속 반사·조명을 연결했다. 확대 그림자 결함을 수정하고 독립 회귀·자원 해제까지 확인했다. 실제 입력/외부PC·3~5분·성능은 미검증이며 다음 단계는 S2-04a 전달 대기다.
+- **S2-03a/b 통과 (2026-10-07, Editor/API·GPU·카메라·Windows64 빌드 기준), 독립 최종 검토 통과.** 지역 양면 광택과 태양/물결 문양·테두리·금속 반사·조명을 연결했다. 확대 그림자 결함을 수정하고 독립 회귀·자원 해제까지 확인했다. 실제 입력/외부PC·3~5분·성능은 미검증이며 시각·소리 피드백은 S2-04에서 진행한다.
+- **S2-04a 구현·검증 완료 (2026-10-07, Editor/API·카메라 기준).** 실제 변화 이벤트 기반 천/솔/광택천 접촉 선과 A 제거 파편을 연결했고 자체132조건·기존 청소 회귀·실제 파괴/구독 해제를 확인했다. a만 로컬 커밋하며 b 오디오·새 최종 Windows 빌드·독립 최종 검토는 전달 대기다.
 - 사용자 승인: Step 1 실제 플레이 검증을 보류하고 Step 2 선행. `s1-06-f2`는 계속 미검증이며 Step 2 첫 실행 가능한 빌드에서 함께 확인한다.
 - 기준점: Step 1 변경·씬·도구·결과 기록은 `34b68b3` (`fix: [s1-06]`), Step 2 준비 문서는 `d0380ee` (`docs: [s2-00]`)에 보존했다. 기존 빌드는 Git 제외 상태로 보존하며 초기 상태는 작업 시작 때 다시 조회한다.
 
@@ -28,7 +29,7 @@
 | [x] | S2-02c | B 집계·HUD·완료 이관 | 2026-10-07 집계/GPU/완료 API106·뷰 복원5조건 및 새 Windows64 빌드 통과; 실제 입력 보류 |
 | [x] | S2-03a | 지역 광택·통합 셰이더 | 2026-10-07 CPU 광택61·집계/GPU/완료110·셰이더19·수명74/25 통과; 지역 양면 화면·면적 평균, 한 점 완료 불가. 실제 입력/빌드는 보류 |
 | [x] | S2-03b | 동전 외형·조명·재질 정리 | 2026-10-07 기본 조명 외형7조건·동일UV 회전 반사·캡처15장·확대 그림자48표본, GPU19조건 및 새 Windows64 빌드 통과. 원판/A5/공유 에셋 보존; 실제 입력 보류 |
-| [ ] | S2-04a | 도구별 접촉·A 제거 시각 효과 | 도구 차이 구분, 커서 범위 유지, 효과가 Raycast·진행률에 간섭하지 않음 |
+| [x] | S2-04a | 도구별 접촉·A 제거 시각 효과 | 2026-10-07 자체132조건·카메라15장·청소 회귀11/110/5·실제 파괴5객체/구독 해제 통과. 같은 프레임 A/표면 양 순서·표현 on/off 결과 동일·2판·고정 자원/차단; 물리 입력/성능 보류 |
 | [ ] | S2-04b | 마찰·제거·완료 소리 | 라이선스/임시 상태 기록, 중첩·끊김 확인, UI/MMB/포커스/완료·재시작에서 지속음 정지 |
 | [ ] | S2-05a | 조작·도구 역할·앞뒤 안내와 HUD | 1280×720에서 읽힘, 개발자 설명 없이 다음 행동 파악, UI 클릭의 청소 누출 없음 |
 | [ ] | S2-05b | 결과·최소 보관·재시작 | 완료 1회, 결과 고정, 동전 1개 연출, 연출 중 재시작·중복 클릭 안전, 모든 상태 복원 |
@@ -168,6 +169,18 @@
 - **캡처·재실행:** 실제 기본 PC 카메라/Deferred/SSAO·조명으로 1280×720의 `.utmp/s203b-visual-{front-dirty,front-local,front-clean-matte,front-clean-polished,back-dirty,back-local,back-clean-polished,tilt35-dirty,tilt35-local,tilt35-clean-matte,tilt35-clean-polished,tilt65-clean-polished,rim90-clean-polished,zoom16-clean-polished,zoom32-clean-polished}.png` 15장을 저장/육안 확인했다. Overlay HUD가 없는 Camera.Render 월드 화면이다. 새 CleaningRoom Play→Pause에서 `CoinAppearanceValidation.Run()` 및 `RunZoomShadowRegression()` 메뉴/API를 실행하고 finally 복원을 확인한 뒤 Stop한다. dt300과 전체 B0/P0/P1 주입은 합성 비교이며 실제 입력/체험 시간 증거가 아니다.
 - **새 빌드·보존:** `BuildPipeline.BuildPlayer`, Windows64/Mono·D3D12/D3D11·BuildOptions.None·CleaningRoom만 활성, 새 `Builds/Windows/Step2-S2-03-20261007/SqueakSqueak.exe`. 최신 BuildReport **Succeeded·오류0·기존 경고485·128,729,201바이트·54.2794078초**, 동전 셰이더 메시지0. 경고는 기존 Inference/Sentis(ConvGeneric460·modulus7·divides2·loop1·signed15)이며 Console 오류0/기존 패키지 경고25를 보존했다. MCP 응답은 출력 경로 재사용 방지 오류였으나 동일 새 경로의 실제 최신 성공 보고서/시간·exe/Data/UnityPlayer/Mono 산출물로 성공을 확인했고 재빌드하지 않았다. Input System 임시 preloaded GUID가 디스크에만 남은 것을 확인해 원래 빈 상태를 PlayerSettings API로 복원했으며 ProjectSettings diff 없음.
 - **종료·인계:** 저장된 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음·객체36·Missing Script0·깨진 청소 참조0·잔여 마스크0·preload0, Coin(0,1.2,0)/회전0·body(2,.1,2)·Zoom2.4 및 실제 전용 머티리얼/셰이더 의존성을 재조회했다. 새 Editor 검사 meta를 포함해 b만 한국어 로컬 커밋하고 독립 최종 검토를 기다린다. 플레이어 실행·실제 LMB/UI/MMB/F/Wheel/포커스·3~5분·성능·외부PC·s1-06-f2는 미검증 유지. S2-04/UI/소리/도구 수치 작업이나 push는 하지 않았다.
+
+### 2026-10-07 / S2-04a / 통과 (Editor/API·화면 기준)
+
+- **기준·범위:** `main 4e6342a`·작업 트리 깨끗함, 해당 CleaningRoom 저장 Edit Mode·컴파일/임포트 없음·Console 오류/경고0. §3.4와 s2-03-f1~f5를 확인했다. 기존 입력 gate/커서/오염·완료 수치·좌표·동전 셰이더를 유지하며 표현 계층만 추가한다. 천/솔/광택천의 실제 변화 접촉과 A 제거를 타입 있는 읽기 이벤트로 받으며 선3개와 수명 제한 파편1개를 재사용한다. 효과 Collider/매 프레임 객체·재질 생성/오디오·S2-05·수치 튜닝·패키지 변경은 하지 않는다.
+- **검증 계획:** 실제 변화/무변화 이벤트·면/법선/회전/줌·차단/선택/F/완료/재시작2판·비활성/파괴·표현 on/off 청소 결과 동일성·고정 자원/이벤트 수를 Editor/API로 확인하고 실제 카메라 캡처를 `.utmp`에 보존한다. b 완료 뒤 새 최종 Windows 빌드를 만들며 물리 입력/성능/3~5분/외부PC·f2는 미검증 유지한다. a만 한국어 로컬 커밋하고 b 전달을 기다린다.
+- **구현·연결:** `SurfaceCleaningChange`/소유자 `SurfaceContactChanged`는 실제 B/광택 변경1회에 접촉·도구·반경·변화 플래그를 보내며 기존 CleaningApplied 횟수/수치는 유지한다. A `ContactCleaningApplied`는 실제 감소1회, `DirtRemoved`는 기존 Removed1회만 중계한다. `CleaningVisualFeedback`은 LateUpdate의 기존 TryGetToolUseContact gate와 같은 면/도구를 확인한 뒤 청소 수치를 쓰지 않고 표현한다. 천=청색 닦임 선3개, 솔=주황 꺾인 선3개, 광택 증가=밝은 별빛 선3개, A 제거=8개 파편(.32초·시스템 상한48/대기5). 단절·선택/F/Reset/완료/비활성/포커스에서는 대기·선·파편을 비우고 면 전환도 이전 파편을 운반하지 않는다. 같은 프레임/도구/면/로컬 접촉1e-5 안의 A/B 플래그만 합쳐 Update 순서에 따른 광택 정보 소실을 방지했다.
+- **저장·기본값:** Unity API로 전용 `CleaningFeedback.shader`/`CleaningContact.mat`/`CleaningDebris.mat`, Controller 표현 컴포넌트·CleaningFeedback 하위 Line3/PS1을 연결·저장·재조회했다. Collider/충돌/자동 방출/PlayOnAwake 없음, PS World 공간과 EmitParams 월드 위치/속도 일치, 동적 객체·재질/텍스처 생성 없음. 새 자료는 자체 선/원형 마스크이며 외부 에셋/라이선스 추가 없음. 씬 저장 중 Unity가 Coin Fill Light에 기본 UniversalAdditionalLightData를 자동 보완했다. 기존 .25·색(.66,.78,1)·40/155°·그림자None·culling 전체/렌더링 레이어1과 기본 pipeline shadow 설정을 확인했으며 조명을 튜닝하거나 컴포넌트를 제거하지 않았다.
+- **검증:** `CleaningVisualFeedbackValidation.Run()` 최종 **132조건·source/detail34/34·제거14회·완료/재시작2판** 통과. dt0·B0/P1 무변화 이벤트 없음, 광택만 변화 구분, A 부분 감소/제거/중복 제거·8/40 파편·수명·A→표면/표면→A 양 순서, 앞뒤/35°×Zoom1.6/3.2의 법선/반경·반대면 누출, invalid use/접촉/포커스 콜백/F/선택/Reset/소유자·표현 비활성·8회 재활성 구독 수를 확인했다. 표현 on/off의 모든 B/P 텍셀·A 내구도·소유자 이벤트 수가 비트 동일하고 선/PS/공유재질 ID도 유지됐다. 실제 private LateUpdate의 LMB 미사용/포커스 gate 정지도 확인했다. UI/MMB/포커스 창 왕복은 실제 입력이 아니라 공통 invalid-use 신호/콜백 검사다. 기존 접촉 통합11·집계/GPU/완료110(2판, GPU오차.001960747)·뷰 복원5조건도 통과했다.
+- **화면·자원:** 기본 카메라 1280×720 `.utmp/s204a-visual-{drycloth,drycloth-off,smallbrush,smallbrush-off,polishingcloth,polishingcloth-off,polish-only,brush-removal,brush-removal-particles-only,brush-removal-particles-off,tilt35-zoom1.6,tilt35-zoom3.2,back-zoom1.6,back-zoom3.2,blocked}.png` 15장 저장/육안 확인(Overlay HUD 제외). 도구 선 on/off 평균RGB 차이 합 .0001704128, 파편만 차이 .00001606858로 실제 출력도 확인했다. `BeginDestruction()`→별도 Editor Step2회→`VerifyDestruction()`에서 임시 객체5개 실제 파괴·구독 원복, 원본 자원 유지 통과. 검사에는 합성 dt/승인 접촉/상태/자세를 주입했고 PS 수명은 native Simulate로 확인했다. 물리 입력/실제 체감·성능 근거로 확대하지 않는다.
+- **종료·재실행·b 인계:** Stop 뒤 Dirty=true였으나 API로 저장한 `.utmp/s204a-scene-state.unity` 사본과 본래 작업 씬 직렬화 diff가0인 것을 확인하고 해당 씬만 저장해 Dirty=false로 인계한다. Edit Mode·컴파일/임포트 없음, 객체41·Missing/깨진 청소 참조/잔여 BMask/임시 객체0·선 비활성/파편0·기본 자세/Zoom2.4·preload0·Console 오류/경고0·효과 셰이더 메시지0. 새 Play→Pause의 `Squeak Squeak/Validation/S2-04a Visual Feedback` 또는 `Run()`; 파괴 검사는 별도 Begin→Step2회→Verify 후 Stop. b 오디오는 기존 gate/ContactInvalidated·SurfaceReset 및 읽기 변화/제거 이벤트를 소비하며 청소/타이머를 쓰지 않는다. a에서 오디오·새 빌드·S2-05·튜닝·push 없음; b 끝난 뒤 새 Windows 빌드, 실제 입력/3~5분/성능/외부PC·f2는 보류 유지.
+
+- **커밋 전 연결 제한:** 인증서 호스트 불일치 경고는 사용자가 No로 닫았다. 마지막 성공 상태 조회/씬 저장 구간은 약16:47 KST(직렬화 사본 시각16:47:19)이며 위 Edit Mode·Dirty=false·Console0/0 근거는 이때의 결과다. 이후 주석/문서·빈 YAML 값의 공백만 정리하고 Refresh를 요청했으나 최종 MCP 상태 재조회가 응답하지 않아 대기를 중단했다. 최신 에디터 상태/최종 임포트 완료를 재확인했다고 주장하지 않는다. 디스크 씬의 fileID별 비교에서 기존 객체 제거0·기존 동작 속성 변경0(Controller 연결·하위 표현 연결만 추가), 전용 효과/기본 보조광 데이터만 추가됨을 확인했다. 인증서 예외·패키지 변경·강제 종료는 하지 않았으며 b 시작 전 연결/상태 재확인이 남는다.
 
 ## 스텝별 검토 결과
 
