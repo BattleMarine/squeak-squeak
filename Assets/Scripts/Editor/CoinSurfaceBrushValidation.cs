@@ -162,8 +162,9 @@ namespace SqueakSqueak.EditorValidation
                 Seed();
                 Check(owner.HasSurfaceContactHistory && events == 1 && tracker.HasStarted &&
                     owner.SurfaceMask.CurrentDirtSum < owner.SurfaceMask.InitialDirtSum &&
-                    owner.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Back) == back && owner.SurfaceDirt == scalar,
-                    "실제 소유자 해당 면만 감소·이벤트1회·스칼라 중복 없음", ref checks);
+                    owner.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Back) == back && owner.SurfaceDirt < scalar &&
+                    owner.SurfaceDirtRemovalRatio == owner.SurfaceMask.RemovalRatio,
+                    "실제 소유자 해당 면만 감소·이벤트1회·마스크 기반 집계", ref checks);
                 var pixels = owner.FrontDirtMask.GetPixels32();
                 Check(Math.Abs(pixels[128 * 256 + 128].r / 255d -
                     owner.SurfaceMask.GetDirt(CoinSurfaceFace.Front, 128 * 256 + 128)) <= 1d / 510d + 1e-7,

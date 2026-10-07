@@ -132,7 +132,7 @@ namespace SqueakSqueak.EditorValidation
             var checks = 0;
             expectedTextureCount = OwnedTextureCount();
             Check(expectedTextureCount == 2 && owner.SurfaceMask != null, "Awake 양면 생성", ref checks);
-            Check(owner.SurfaceDirt == 1f && owner.Polish == 0f &&
+            Check(owner.SurfaceDirtRemovalRatio == 0f && owner.SurfaceDirt > 0f && owner.Polish == 0f &&
                 !GameObject.Find("CleaningController").GetComponent<CleaningProgressTracker>().HasStarted,
                 "청소 전 새 Play에서 실행", ref checks);
             var scalar = owner.SurfaceDirt;
@@ -148,7 +148,8 @@ namespace SqueakSqueak.EditorValidation
             owner.SurfaceMask.TrySetDirt(CoinSurfaceFace.Front, changedIndex, 0f);
             owner.UploadSurfaceMasks();
             ValidateTextures(owner, ref checks);
-            Check(owner.SurfaceDirt == scalar && owner.Polish == 0f, "a 중간 상태의 스칼라 B/광택 분리", ref checks);
+            Check(owner.SurfaceDirt < scalar && owner.SurfaceDirtRemovalRatio > 0f && owner.Polish == 0f,
+                "마스크 변경에서 파생된 잔여 평균/제거율과 광택 분리", ref checks);
             owner.enabled = false;
             owner.enabled = true;
             Check(frontId == owner.FrontDirtMask.GetInstanceID(), "Disable/Enable 자원 유지", ref checks);
@@ -185,9 +186,10 @@ namespace SqueakSqueak.EditorValidation
                     serialized.ApplyModifiedPropertiesWithoutUndo();
                     temporary.SetActive(true);
                     Check(clone.SurfaceMask != null && clone.SurfaceMask.InitialIntensity == intensity &&
-                        clone.SurfaceMask.Pattern == pattern && clone.SurfaceDirt == intensity,
+                        clone.SurfaceMask.Pattern == pattern && Math.Abs(clone.SurfaceDirt -
+                            clone.SurfaceMask.CurrentDirtSum / (2d * clone.SurfaceMask.ValidTexelCount)) < 1e-7,
                         "동적 소유자 Awake 0/부분/전체 설정", ref checks);
-                    Check(clone.SurfaceMask.RemovalRatio == (intensity == 0f ? 1f : 0f), "소유자 마스크 초기 분모", ref checks);
+                    Check(clone.SurfaceDirtRemovalRatio == (intensity == 0f ? 1f : 0f), "소유자 마스크 초기 분모", ref checks);
                     ValidateTextures(clone, ref checks);
                     var cloneFront = clone.FrontDirtMask;
                     var cloneSum = clone.SurfaceMask.InitialDirtSum;

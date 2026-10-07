@@ -20,7 +20,7 @@ namespace SqueakSqueak.Cleaning
         private Renderer coinRenderer;
 
         [SerializeField, Range(0f, 1f)]
-        [Tooltip("새 청소 판이 시작될 때의 B 타입 표면 오염 수치입니다.")]
+        [Tooltip("새 판 B 마스크 패턴의 초기 강도(0~1)입니다. 판 중 변경은 다음 Reset부터 적용합니다.")]
         private float initialSurfaceDirt = 1f;
 
         [SerializeField, Range(0f, 1f)]
@@ -32,7 +32,7 @@ namespace SqueakSqueak.Cleaning
         private int surfaceMaskResolution = CoinSurfaceMaskData.DefaultResolution;
 
         [SerializeField]
-        [Tooltip("위치별 B 마스크의 고정 초기 패턴입니다. 기존 스칼라 B는 S2-02c까지 유지합니다.")]
+        [Tooltip("앞뒤 B 마스크의 초기 패턴입니다. 판 중 변경은 다음 Reset부터 적용합니다.")]
         private CoinSurfaceDirtPattern surfaceDirtPattern = CoinSurfaceDirtPattern.FixedPatches;
 
         [SerializeField]
@@ -49,26 +49,27 @@ namespace SqueakSqueak.Cleaning
         private Color cleanBaseColor;
         private float cleanSmoothness;
         private float cleanMetallic;
-        private float roundInitialSurfaceDirt;
         private Color32[] maskUploadPixels;
         private long uploadedMaskRevision = -1;
         private readonly CoinSurfaceBrushStroke surfaceStroke = new();
 
         public bool HasSurfaceContactHistory => surfaceStroke.HasPreviousContact;
 
-        // S2-02a의 준비 상태입니다. 기존 화면/HUD 수치의 원본으로는 아직 사용하지 않습니다.
+        // B의 유일한 상태 원본입니다. 텍스처와 표시값은 이 데이터에서 파생됩니다.
         public CoinSurfaceMaskData SurfaceMask { get; private set; }
         public Texture2D FrontDirtMask { get; private set; }
         public Texture2D BackDirtMask { get; private set; }
 
-        public float SurfaceDirt { get; private set; }
+        /// <summary>유효 앞뒤 텍셀의 잔여 B 면적 평균(0~1)입니다. 제거율과 구분합니다.</summary>
+        public float SurfaceDirt => SurfaceMask == null ? 0f :
+            Mathf.Clamp01((float)(SurfaceMask.CurrentDirtSum / (2d * SurfaceMask.ValidTexelCount)));
 
         /// <summary>
         /// 현재 청소 판이 시작할 때의 B 오염량을 기준으로 계산한 제거율입니다.
         /// </summary>
-        public float SurfaceDirtRemovalRatio => roundInitialSurfaceDirt <= Mathf.Epsilon
-            ? 1f
-            : Mathf.Clamp01(1f - SurfaceDirt / roundInitialSurfaceDirt);
+        // 데이터 생성 때 고정된 초기 합을 사용합니다. 설정 필드는 판 중 분모에 관여하지 않습니다.
+        // 미초기화/해제 상태는 완료된 빈 마스크(초기 합0)와 다르게 취급합니다.
+        public float SurfaceDirtRemovalRatio => SurfaceMask == null ? 0f : SurfaceMask.RemovalRatio;
 
         public float Polish { get; private set; }
 
@@ -138,8 +139,9 @@ namespace SqueakSqueak.Cleaning
                 var polishEfficiency = 1f - SurfaceDirt;
                 if (polishEfficiency > 0f)
                 {
+                    var previousPolish = Polish;
                     Polish = Mathf.Min(1f, Polish + tool.PolishGainPerSecond * polishEfficiency * deltaTime);
-                    changed = true;
+                    changed |= Polish != previousPolish;
                 }
             }
 
@@ -161,8 +163,6 @@ namespace SqueakSqueak.Cleaning
                 SurfaceMask.Reset();
                 UploadSurfaceMasks();
             }
-            roundInitialSurfaceDirt = initialSurfaceDirt;
-            SurfaceDirt = roundInitialSurfaceDirt;
             Polish = initialPolish;
             ApplyVisuals();
         }
@@ -264,6 +264,7 @@ namespace SqueakSqueak.Cleaning
 
         private void ApplyVisuals()
         {
+            // S2-03의 지역 셰이더 전까지 전체 동전에 집계 기반 임시 색상/광택을 적용합니다.
             var cleanSurfaceRatio = 1f - SurfaceDirt;
             var baseSmoothness = Mathf.Lerp(dirtySmoothness, cleanSmoothness, cleanSurfaceRatio);
 
