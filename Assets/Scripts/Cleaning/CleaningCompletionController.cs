@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SqueakSqueak.Cleaning
@@ -39,6 +40,10 @@ namespace SqueakSqueak.Cleaning
         private float requiredPolish = 0.7f;
 
         public bool IsCompleted { get; private set; }
+        /// <summary>결과 상태 전환이 끝난 판당1회 알림입니다. 완료 판정 권한은 이 컴포넌트에만 있습니다.</summary>
+        public event Action RoundCompleted;
+        /// <summary>전체 초기 상태와 입력 복원이 끝난 재시작1회 알림입니다.</summary>
+        public event Action RoundRestarted;
 
         private void Awake()
         {
@@ -81,6 +86,7 @@ namespace SqueakSqueak.Cleaning
             progressTracker.StopTiming();
             surfacePointer.enabled = false;
             resultPanel.Show(progressTracker.Cleanliness, progressTracker.Polish, progressTracker.ElapsedSeconds);
+            RoundCompleted?.Invoke();
             return true;
         }
 
@@ -107,6 +113,7 @@ namespace SqueakSqueak.Cleaning
             }
 
             surfacePointer.ResetViewToInitialState();
+            RoundRestarted?.Invoke();
             return true;
         }
 

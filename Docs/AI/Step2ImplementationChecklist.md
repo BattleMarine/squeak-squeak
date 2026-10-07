@@ -7,7 +7,8 @@
 
 - **S2-02a/b/c 통과 (2026-10-07, CPU/컴포넌트 API·GPU 대조·Windows64 빌드 기준), 독립 최종 검토 통과.** B 집계·HUD/완료를 CPU 마스크로 이관했다. 실제 입력/체험·성능은 미검증이다.
 - **S2-03a/b 통과 (2026-10-07, Editor/API·GPU·카메라·Windows64 빌드 기준), 독립 최종 검토 통과.** 지역 양면 광택과 태양/물결 문양·테두리·금속 반사·조명을 연결했다. 확대 그림자 결함을 수정하고 독립 회귀·자원 해제까지 확인했다. 실제 입력/외부PC·3~5분·성능은 미검증이며 시각·소리 피드백은 S2-04에서 진행한다.
-- **S2-04a 구현·검증 완료 (2026-10-07, Editor/API·카메라 기준).** 실제 변화 이벤트 기반 천/솔/광택천 접촉 선과 A 제거 파편을 연결했고 자체132조건·기존 청소 회귀·실제 파괴/구독 해제를 확인했다. a만 로컬 커밋하며 b 오디오·새 최종 Windows 빌드·독립 최종 검토는 전달 대기다.
+- **S2-04a 구현·검증 완료 (2026-10-07, Editor/API·카메라 기준).** 실제 변화 이벤트 기반 천/솔/광택천 접촉 선과 A 제거 파편을 연결했고 자체132조건·기존 청소 회귀·실제 파괴/구독 해제를 확인했다. a는 `a9f88e3`에 별도 커밋했으며 S2-04 독립 최종 검토는 대기다.
+- **S2-04b 구현·제한부 검증 완료 (2026-10-07, Editor/API·Windows64 빌드 기준).** 자체 임시 WAV5·고정 Source3, 사용/제거/완료·재시작 알림과88조건·관련 회귀·실제 파괴를 확인했다. 출력 표본은0이므로 실제 오디오 출력/청취는 미검증이다. a `a9f88e3`과 b 별도 로컬 커밋 후 독립 최종 검토를 기다린다.
 - 사용자 승인: Step 1 실제 플레이 검증을 보류하고 Step 2 선행. `s1-06-f2`는 계속 미검증이며 Step 2 첫 실행 가능한 빌드에서 함께 확인한다.
 - 기준점: Step 1 변경·씬·도구·결과 기록은 `34b68b3` (`fix: [s1-06]`), Step 2 준비 문서는 `d0380ee` (`docs: [s2-00]`)에 보존했다. 기존 빌드는 Git 제외 상태로 보존하며 초기 상태는 작업 시작 때 다시 조회한다.
 
@@ -30,7 +31,7 @@
 | [x] | S2-03a | 지역 광택·통합 셰이더 | 2026-10-07 CPU 광택61·집계/GPU/완료110·셰이더19·수명74/25 통과; 지역 양면 화면·면적 평균, 한 점 완료 불가. 실제 입력/빌드는 보류 |
 | [x] | S2-03b | 동전 외형·조명·재질 정리 | 2026-10-07 기본 조명 외형7조건·동일UV 회전 반사·캡처15장·확대 그림자48표본, GPU19조건 및 새 Windows64 빌드 통과. 원판/A5/공유 에셋 보존; 실제 입력 보류 |
 | [x] | S2-04a | 도구별 접촉·A 제거 시각 효과 | 2026-10-07 자체132조건·카메라15장·청소 회귀11/110/5·실제 파괴5객체/구독 해제 통과. 같은 프레임 A/표면 양 순서·표현 on/off 결과 동일·2판·고정 자원/차단; 물리 입력/성능 보류 |
-| [ ] | S2-04b | 마찰·제거·완료 소리 | 라이선스/임시 상태 기록, 중첩·끊김 확인, UI/MMB/포커스/완료·재시작에서 지속음 정지 |
+| [x] | S2-04b | 마찰·제거·완료 소리 | 2026-10-07 API88조건·시각132/집계110 회귀·실제 파괴5객체 및 새 Windows64 빌드 통과. 출력0/실제 청취·물리 입력·음질/클릭·성능 미검증, 독립 검토 대기 |
 | [ ] | S2-05a | 조작·도구 역할·앞뒤 안내와 HUD | 1280×720에서 읽힘, 개발자 설명 없이 다음 행동 파악, UI 클릭의 청소 누출 없음 |
 | [ ] | S2-05b | 결과·최소 보관·재시작 | 완료 1회, 결과 고정, 동전 1개 연출, 연출 중 재시작·중복 클릭 안전, 모든 상태 복원 |
 | [ ] | S2-06a | 수치 회귀·통합·성능 검사 | 아래 검사표 및 2판 반복, 30/60/120Hz 비교, 자원·이벤트 누적 없음, 새 오류 분류 |
@@ -181,6 +182,21 @@
 - **종료·재실행·b 인계:** Stop 뒤 Dirty=true였으나 API로 저장한 `.utmp/s204a-scene-state.unity` 사본과 본래 작업 씬 직렬화 diff가0인 것을 확인하고 해당 씬만 저장해 Dirty=false로 인계한다. Edit Mode·컴파일/임포트 없음, 객체41·Missing/깨진 청소 참조/잔여 BMask/임시 객체0·선 비활성/파편0·기본 자세/Zoom2.4·preload0·Console 오류/경고0·효과 셰이더 메시지0. 새 Play→Pause의 `Squeak Squeak/Validation/S2-04a Visual Feedback` 또는 `Run()`; 파괴 검사는 별도 Begin→Step2회→Verify 후 Stop. b 오디오는 기존 gate/ContactInvalidated·SurfaceReset 및 읽기 변화/제거 이벤트를 소비하며 청소/타이머를 쓰지 않는다. a에서 오디오·새 빌드·S2-05·튜닝·push 없음; b 끝난 뒤 새 Windows 빌드, 실제 입력/3~5분/성능/외부PC·f2는 보류 유지.
 
 - **커밋 전 연결 제한:** 인증서 호스트 불일치 경고는 사용자가 No로 닫았다. 마지막 성공 상태 조회/씬 저장 구간은 약16:47 KST(직렬화 사본 시각16:47:19)이며 위 Edit Mode·Dirty=false·Console0/0 근거는 이때의 결과다. 이후 주석/문서·빈 YAML 값의 공백만 정리하고 Refresh를 요청했으나 최종 MCP 상태 재조회가 응답하지 않아 대기를 중단했다. 최신 에디터 상태/최종 임포트 완료를 재확인했다고 주장하지 않는다. 디스크 씬의 fileID별 비교에서 기존 객체 제거0·기존 동작 속성 변경0(Controller 연결·하위 표현 연결만 추가), 전용 효과/기본 보조광 데이터만 추가됨을 확인했다. 인증서 예외·패키지 변경·강제 종료는 하지 않았으며 b 시작 전 연결/상태 재확인이 남는다.
+
+- **연결 복구:** 사용자 MCP 재시작 후 **16:59 KST** 해당 프로젝트 GetState/GetActive/Console 실제 조회 성공. 저장 CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음·오류/경고0을 다시 확인했다. 위 a 커밋 당시 제한은 해소됐다.
+
+### 2026-10-07 / S2-04b / 구현·제한부 검증 완료
+
+- **기준·계약:** `main a9f88e3`·깨끗한 작업 트리, 저장 CleaningRoom Edit Mode·Console0/0·기존 AudioSource0/Listener1·Windows64/Mono·preload0. 기존 gate/읽기 변화·제거 이벤트를 소비하는 독립 오디오 관찰자를 추가하며 완료 소유자에 완료/재시작 읽기 알림만 보완한다. 청소 수치·시각 효과·UI/도구 속도/패키지는 변경하지 않는다.
+- **음원·정책:** 자체 합성 임시 mono PCM WAV(천/솔/광택 루프, 제거/완료)와 고정 Source3개를 사용한다. 외부 자료 없음·최종 음질 아님. 깨끗한 표면도 유효 Hold/Drag이면 마찰음을 내고 실제 변화는 작은 음량 강조만 한다. 제거는 같은 프레임 묶음1회/재생 중 추가 중첩 없음, 완료는 판당1회. invalid use/Side/UI/MMB/접촉·포커스/F/선택/Reset/비활성은 사용음·대기를 취소하며 완료 원샷은 유효 완료 후만 허용하고 재시작/포커스/비활성에서 취소한다.
+- **검증 계획:** import/샘플·클리핑·루프 경계, 실제 Source 재생/정지·2판·중복/정리·구독/파괴·표현 on/off 청소 상태 독립성을 Editor/API로 확인한다. 실제 오디오 출력 표본을 얻을 수 있는지 검사하고 물리 입력/청취·성능과 구분한다. 영향받는 a 회귀만 재실행하고 새 제외 경로 Windows64 비개발 빌드·BuildReport/산출물/빈 preload 원복 후 b 별도 한국어 로컬 커밋한다.
+- **구현·출처:** `CleaningAudioFeedback`이 기존 TryGetToolUseContact/ContactInvalidated·SurfaceReset·실제 변화/A 제거를 소비한다. 완료 소유자의 결과 전환 뒤 RoundCompleted·전체 복원 뒤 RoundRestarted 알림만 추가했으며 판정/수치/타이머는 보존했다. 마찰 Source1/제거 Source1/완료 Source1을 Unity API로 Controller/하위 CleaningAudio에 연결·저장했다. 자동재생Off·2D·Pitch1, 음량 .12/.22/.2와 공격시간 .025초를 Inspector에 노출한다. 선택/F/포커스/차단은 사용음·대기를 취소하고 완료음은 사용 gate와 독립적으로1회, 재시작/비활성/포커스에서 취소한다. 포커스 이탈 직후 완료도 차단하며 복귀/재활성 때 누락음을 큐 재생하지 않는다.
+- **임시 WAV5:** `CleaningAudioClipGenerator.Generate()`/메뉴로 누락 파일만 생성(기존 파일 덮어쓰기 없음), 정수 주기 배음·고정 seed로 마찰3개 각 .8초, 제거 .16초, 완료 .55초를 합성했다. 외부 원본/서비스/유료 자료·라이선스 의무 없음. mono PCM16/44.1kHz·DecompressOnLoad·preload·backgroundOff, peak .2799988·RMS .05951819~.07597641·DC 절댓값<.00001. 루프 끝→시작 샘플 차이 천 .001281738/솔 .009521484/광택 .004943848, 원샷 양 끝0. 시작 음량 ramp로 급격한 시작을 줄이되 차단은 즉시 Stop하며 실제 음질·이음새/정지 클릭 청취는 보류한다. Unity6 preload API 컴파일 오류1건은 SampleSettings 필드로 수정해 새 컴파일을 확인했다.
+- **API·회귀:** `CleaningAudioFeedbackValidation.Run()` **88조건** 통과. 도구별 실제 Source.isPlaying/clip·매 프레임 재시작 없음·5ms 부분 상승/25ms 목표 음량·무변화 Hold·실제 변화 강조·앞뒤/Side·A5 묶음/재생 중 추가 제거 폐기·차단 대기 취소·F/선택/포커스/Reset·소유자/관찰자 비활성·8회 구독 원복·완료1회/닫힌 gate 보존/즉시 재시작 취소2판을 확인했다(포커스 경계용 추가1판 포함 completed/restarted3/3). 실제 LateUpdate의 LMB 미사용 gate 정지, 오디오 on/off 전체 B/P/A·이벤트 비트 동일, 시각 off도 오디오 독립, Source ID3개 유지 통과. 사용 gate/dt·포커스 callback은 합성 검사이며 물리 UI/MMB/창 왕복이 아니다. 영향받는 a132조건·집계/GPU/완료110조건(2판, 오차 .001960747)만 재실행 통과했다. BeginDestruction→별도 Editor Step2회→Verify에서 객체5개(루트/자식3/관찰자) 실제 파괴·Source3/완료 구독 원복을 확인했다.
+- **출력 제한:** BeginOutput→약 .65초 Editor update에서 실제 고정 마찰 Source를 단독 재생하고 GetOutputData/AudioListener 출력 표본을 읽었다(관찰자만 임시 비활성 후 복원). 두 번째 진단은 reads9·DSP .7466667초 진행·Source.isPlaying=true/volume .12·masterMute=false·Listener volume1/pause=false·focused=true였으나 Source/Listener peak·RMS 모두0이었다. 원인을 확정하지 못했으며 **오디오 출력 경로/실제 청취 통과로 기록하지 않는다**. 사용자 음소거/AudioManager 설정을 바꾸거나 입력 gate를 우회한 체험으로 확대하지 않았다. 이 검사는 샘플 import·Source 상태 검사와 별개다.
+- **새 빌드:** `Builds/Windows/Step2-S2-04-20261007/SqueakSqueak.exe`, Windows64/Mono·D3D12/D3D11·비개발·CleaningRoom만. 실제 최신 BuildReport **Succeeded·오류0·기존 경고485·129,034,321바이트·32.1167516초**, 완료17:16:23 KST. 경고는 Inference ConvGeneric460/modulus7/divides2/loop1/signed15로 S2-03과 동일, 동전/효과 shader 메시지0. MCP는 경고 때문에 isError를 반환했으나 실제 성공 보고서/시간·exe(667136)/UnityPlayer.dll(36730288)/Assembly-CSharp.dll(56320)·Data/Mono 산출물을 확인했으며 재빌드하지 않았다. 기존 산출물 보존/Git 제외, 새 실행/입력·소리·외부PC는 미검증이다.
+- **저장·종료:** Stop 후 Dirty 사본 `.utmp/s204b-scene-state.unity`와 작업 씬 diff0 확인 뒤 해당 씬만 저장했다. 빌드 임시 Input System preload가 메모리0/디스크1로 남아 PlayerSettings API로 빈 상태를 복원했다. SaveAssetIfDirty는 ProjectSettings를 저장하지 않았고, 지속 객체를 InternalEditorUtility에 직접 전달한 진단은 도구 오류 `You may not pass in objects that are already persistent`81건을 남겼다(스택은 동적 CommandScript→SaveToSerializedFileAndForget, 런타임 기능 오류 아님). 해당 시도를 반복하지 않았으며 관련 없는 dirty Assets가0임을 확인한 뒤 SaveAssets로 디스크까지 저장해 ProjectSettings/Packages diff0을 확인했다. 오류81·기존 패키지 경고25를 먼저 기록했고 설정 복원 뒤 새 Play 시작 검증에서 관찰자 활성/미완료·Source3 무재생·preload0, Stop 뒤 저장 Edit Mode·Dirty=false·Console0/0을 확인했다(수동 로그 삭제 없음).
+- **인계·재실행:** 씬 객체45·Missing/깨진 참조/잔여 BMask/임시 객체0·Source3 정지/음량0·선3 비활성/파편0·Coin(0,1.2,0)/회전0·Zoom2.4·preload0. 새 Play→Pause에서 `Squeak Squeak/Validation/S2-04b Audio Feedback` 또는 Run, 수명은 Begin→Step2회→Verify, 출력은 BeginOutput→OutputResult 확인 후 Stop한다. b 코드/씬/WAV/필수 meta·기록만 별도 한국어 로컬 커밋하며 독립 최종 검토를 기다린다. 실제 입력/청취·음질/클릭·성능·3~5분·외부PC·f2는 미검증 유지. S2-05/UI/보관/튜닝·패키지·push 없음.
 
 ## 스텝별 검토 결과
 
