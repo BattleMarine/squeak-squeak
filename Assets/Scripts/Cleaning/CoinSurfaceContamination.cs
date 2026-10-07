@@ -52,6 +52,9 @@ namespace SqueakSqueak.Cleaning
         private float roundInitialSurfaceDirt;
         private Color32[] maskUploadPixels;
         private long uploadedMaskRevision = -1;
+        private readonly CoinSurfaceBrushStroke surfaceStroke = new();
+
+        public bool HasSurfaceContactHistory => surfaceStroke.HasPreviousContact;
 
         // S2-02a의 준비 상태입니다. 기존 화면/HUD 수치의 원본으로는 아직 사용하지 않습니다.
         public CoinSurfaceMaskData SurfaceMask { get; private set; }
@@ -87,35 +90,49 @@ namespace SqueakSqueak.Cleaning
             ResetSurface();
         }
 
-        private void Update()
+        private void OnEnable()
         {
-            if (!surfacePointer.TryGetToolUseSurfaceHit(out _))
-            {
-                return;
-            }
-
-            ApplyCleaning(Time.deltaTime);
+            if (surfacePointer != null) surfacePointer.ContactInvalidated += BreakSurfaceContact;
+            if (toolSelection != null) toolSelection.ToolSelected += HandleToolSelected;
         }
 
-        /// <summary>
-        /// 현재 선택 도구의 B 오염 제거 및 광택 효과를 시간 기반으로 적용합니다.
-        /// 광택천 효과는 남은 표면 오염이 적을수록 커집니다.
-        /// </summary>
+        private void OnDisable()
+        {
+            if (surfacePointer != null) surfacePointer.ContactInvalidated -= BreakSurfaceContact;
+            if (toolSelection != null) toolSelection.ToolSelected -= HandleToolSelected;
+            BreakSurfaceContact();
+        }
+
+        private void HandleToolSelected(CleaningToolDefinition _) => BreakSurfaceContact();
+        private void BreakSurfaceContact() => surfaceStroke.BreakContact();
+
+        private void Update() => ApplyCleaning(Time.deltaTime);
+
+        /// <summary>위치 없는 호출도 기존 LMB/UI/MMB/포커스 gate를 거칩니다. 전체 B 감소는 하지 않습니다.</summary>
         public bool ApplyCleaning(float deltaTime)
         {
-            if (deltaTime <= 0f || toolSelection.CurrentTool == null)
+            if (!isActiveAndEnabled || SurfaceMask == null || !surfacePointer.TryGetToolUseContact(out var contact))
             {
+                BreakSurfaceContact();
                 return false;
             }
+            return ApplySurfaceContact(contact, deltaTime);
+        }
 
+        private bool ApplySurfaceContact(CoinSurfaceContact contact, float deltaTime)
+        {
             var tool = toolSelection.CurrentTool;
-            var changed = false;
-            if (SurfaceDirt > 0f && tool.SurfaceDirtRemovalPerSecond > 0f)
+            if (tool == null)
             {
-                SurfaceDirt = Mathf.Max(0f, SurfaceDirt - tool.SurfaceDirtRemovalPerSecond * deltaTime);
-                changed = true;
+                BreakSurfaceContact();
+                return false;
             }
+            var changed = surfaceStroke.Apply(SurfaceMask, contact, surfacePointer.SurfaceLocalToWorldMatrix,
+                surfacePointer.SurfaceLocalBounds, tool, tool.BrushRadius, tool.SurfaceDirtRemovalPerSecond, deltaTime);
+            if (!surfaceStroke.LastFrameAccepted) return false;
+            if (changed) UploadSurfaceMasks();
 
+            // 전역 광택은 S2-03까지 종전 방식을 유지합니다. 지역 광택을 여기서 선행하지 않습니다.
             if (Polish < 1f && tool.PolishGainPerSecond > 0f)
             {
                 var polishEfficiency = 1f - SurfaceDirt;
@@ -137,6 +154,7 @@ namespace SqueakSqueak.Cleaning
 
         public void ResetSurface()
         {
+            BreakSurfaceContact();
             if (Application.isPlaying)
             {
                 EnsureSurfaceMasks();
@@ -200,6 +218,7 @@ namespace SqueakSqueak.Cleaning
         /// <summary>이 인스턴스가 생성한 런타임 자원만 해제합니다. 다음 Reset에서 재생성할 수 있습니다.</summary>
         public void ReleaseSurfaceMasks()
         {
+            BreakSurfaceContact();
             if (FrontDirtMask != null) ReleaseTexture(FrontDirtMask);
             if (BackDirtMask != null) ReleaseTexture(BackDirtMask);
             FrontDirtMask = null;

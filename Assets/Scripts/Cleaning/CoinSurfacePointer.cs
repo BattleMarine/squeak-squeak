@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -62,6 +63,11 @@ namespace SqueakSqueak.Cleaning
         private Bounds surfaceLocalBounds;
 
         public CoinSurfaceContact CurrentSurfaceContact { get; private set; }
+
+        public Bounds SurfaceLocalBounds => surfaceLocalBounds;
+        public Matrix4x4 SurfaceLocalToWorldMatrix => surfaceMeshCollider != null
+            ? surfaceMeshCollider.transform.localToWorldMatrix : default;
+        public event Action ContactInvalidated;
 
         public bool HasCleanableContact => HasSurfaceHit && CurrentSurfaceContact.IsCleanable;
 
@@ -169,6 +175,13 @@ namespace SqueakSqueak.Cleaning
         private void OnDisable()
         {
             cleaningMap?.Disable();
+            IsRotating = false;
+            ClearSurfaceHit();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (focused) return;
             IsRotating = false;
             ClearSurfaceHit();
         }
@@ -391,6 +404,7 @@ namespace SqueakSqueak.Cleaning
             CurrentSurfaceHit = default;
             CurrentSurfaceContact = default;
             toolCursor?.Hide();
+            ContactInvalidated?.Invoke();
         }
     }
 }
