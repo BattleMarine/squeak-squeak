@@ -5,7 +5,7 @@
 
 ## 현재 상태
 
-- **S2-00·S2-01a/b 통과 (2026-10-07, b는 코드·Physics 기준). 다음 작업: S2-02a — 오케스트레이션 검토·전달 대기.** [표면 좌표 계약](Step2SurfaceCoordinateContract.md)의 매핑·Pointer/커서 연결을 구현했다. 앞뒷면 접촉 API만 준비했으며 마스크·전체 B 감소 교체는 아직 미구현이다. b에서 Unity 연결·실제 Collider·새 Play Mode 검증을 완료했다.
+- **S2-01 최종 검토·S2-02a 통과 (2026-10-07, a는 CPU/자원 수명 기준). 다음: S2-02b 전달 대기.** 앞뒤 마스크 생성·Reset·해제를 기존 오염 소유자에 연결했다. 사용자 승인에 따라 a→b→c를 단계별 검증·별도 커밋하며, 이번 실행은 a만 완료했다. [표면 좌표 계약](Step2SurfaceCoordinateContract.md)의 접촉 API는 보존했고 드래그·HUD 이관은 아직 미구현이다.
 - 사용자 승인: Step 1 실제 플레이 검증을 보류하고 Step 2 선행. `s1-06-f2`는 계속 미검증이며 Step 2 첫 실행 가능한 빌드에서 함께 확인한다.
 - 기준점: Step 1 변경·씬·도구·결과 기록은 `34b68b3` (`fix: [s1-06]`), Step 2 준비 문서는 `d0380ee` (`docs: [s2-00]`)에 보존했다. 기존 빌드는 Git 제외 상태로 보존하며 초기 상태는 작업 시작 때 다시 조회한다.
 
@@ -22,7 +22,7 @@
 | [x] | S2-00 | Git·Unity 프로젝트/씬·Console·패키지·빌드 기준선 | 2026-10-07 실제 MCP 조회·핵심 참조·보존 확인. 아래 기준선 기록; f2 미검증 유지 |
 | [x] | S2-01a | 앞/뒤/옆 청소 범위와 좌표 계약 확정 | 2026-10-07 로컬 XZ·면 ID·법선·월드 거리·스케일/입력 실패 계약 확정, 독립 수치 76개 통과; Unity/b 구현 검증 미수행 |
 | [x] | S2-01b | 표면 좌표·브러시 위치 실험 | 2026-10-07 코드/Physics 920개·카메라 Raycast 30개 통과 및 재실행; 앞뒤·옆면·회전·줌·비균일 배율·커서 검사. 실제 마스크 쓰기는 S2-02 대기 |
-| [ ] | S2-02a | 마스크 생성·고정 초기 패턴·Reset/해제 | 면별 분리, 원판 밖 제외, 초기 합 고정, 재시작 동일·파괴 시 자원 해제 |
+| [x] | S2-02a | 마스크 생성·고정 초기 패턴·Reset/해제 | 2026-10-07 CPU 212조건·395,046 초기 텍셀 대조, Play 생성/Reset 74·해제25조건 통과; 기존 스칼라·HUD 유지 |
 | [ ] | S2-02b | 접촉 기반 B 제거·드래그 보간 | Hold·Drag 정상, 접촉 밖/반대면 보존, 표본 수 증가로 제거량 증가 없음, 차단 후 긴 선 없음 |
 | [ ] | S2-02c | B 집계·HUD·완료 이관 | 초기 0/부분/전체 오염 검사, 기존 전체 감소 중복 제거, 진행 이벤트·완료 경계 일치 |
 | [ ] | S2-03a | 지역 광택·통합 셰이더 | 접촉 위치의 B에 따른 광택 효율, 면적 평균과 화면 일치, 한 점만으로 전체 광택 완료 불가 |
@@ -45,7 +45,7 @@
 | 앞뒤·가장자리·옆면·줌·회전 | 해당 접촉 영역만 변화, 대상 밖 집계/쓰기 없음 | 좌표·커서 API/Physics 통과(S2-01b); 마스크 집계/쓰기 미실행 |
 | 같은 위치 Hold / 빠른 Drag | 시간 기반 제거, 연속 경로, 보간에 의한 과다 제거 없음 | 미실행 |
 | 동전 밖·UI·MMB·포커스·면/도구 전환 | 해당 차단 상태에서 입력·효과 정지, 전환 시 접촉 이력 초기화, 버튼 해제 후 자동 청소·재진입 연결선 없음 | 미실행 |
-| B 초기 0·부분·전체 / 광택 | 분모 고정·범위 정상·화면/HUD 일치, 초기 B=0에서도 광택 가능 | 미실행 |
+| B 초기 0·부분·전체 / 광택 | 분모 고정·범위 정상·화면/HUD 일치, 초기 B=0에서도 광택 가능 | CPU 초기·고정 분모와 컴포넌트 생성/Reset 통과(S2-02a); HUD·지역 광택 미실행 |
 | 완료 기준별 직전·동일·직후 | 다른 조건 충족 시 경계대로 1회 완료 | 미실행 |
 | 30/60/120Hz 동일 시간·경로 | 제거율·광택 차이 기본 1%p 이내, 초과 원인 기록 | 미실행 |
 | F / 재시작 / 연출 중 재시작 | F는 자세·줌만, 재시작은 전체 복원·연출 취소 | 미실행 |
@@ -109,6 +109,17 @@
 - **상태·Console:** 시작 오류 0·경고 6(기존 서명 수집 3, Account API·인증서·토큰 시간초과). 도구 진단의 `Mesh` 이름 충돌은 `UnityEngine.Mesh`로 한정해 수정했으며 프로젝트 코드 오류가 아니었다. 직접 Console을 지우지 않았다. 최종 Stop 뒤 컴파일/임포트 진행 없음·오류 0·Account API 경고 1. Edit Mode 객체 35·Missing Script 0·청소 참조 누락 0·Dirty=false, 회전 0·CoinBody `(2,.1,2)`·Zoom 2.4·Mesh 참조 일치·Pointer 활성·커서 두 Renderer 비활성으로 복원했다. 씬/Data/Packages/ProjectSettings diff 없음.
 - **재실행:** 새 CleaningRoom Play를 Pause하고 실제 포인터를 UI 밖에 둔 뒤(마우스 버튼 해제) `Squeak Squeak/Validation/S2-01 Surface Mapping (Paused Play Mode)` 메뉴 또는 MCP `SqueakSqueak.EditorValidation.CoinSurfaceMappingValidation.Run()`을 실행한다. Editor 전용 검사이며 런타임 상태를 try/finally로 복원하고 저장하지 않는다. 기존 세션의 완료/진행 상태에 영향을 주지 않도록 새 Play에서 실행한다.
 - **남음·인계:** 실제 마우스 Hold/Drag·UI/MMB/포커스 차단 재현·청소 한 판·마스크 쓰기·성능 측정·Windows 새 빌드는 미실행이다. API/Physics 통과를 물리 입력 검증으로 대신하지 않으며 `s1-06-f2`는 보류·미검증 유지한다. `korean-git-commit` 스킬로 b 관련 코드·검사·문서·meta만 별도 로컬 커밋한다. push하지 않고 오케스트레이션 검토 후 S2-02a 전달을 기다린다.
+
+### 2026-10-07 / S2-02a / 통과 (CPU·자원 수명 기준)
+
+- **기준선:** `main 526c893`·작업 트리 깨끗함, Unity MCP 경로 일치·CleaningRoom Edit Mode·Dirty=false·컴파일/임포트 없음. 객체 35·Missing Script 0·청소 참조 누락 0, Console 오류 0·기존 Account API 경고 1. 초기 읽기 명령이 소유자를 CleaningController로 잘못 조회해 도구 내 NullReference를 냈으며, 타입 조회로 실제 `Coin/CoinBody`의 CoinSurfaceContamination(ID 64732)과 기존 참조를 확인했다. 읽기 명령은 씬을 변경하지 않았다.
+- **구현안:** 작은 CPU 데이터 객체가 앞뒤 독립 초기/현재 오염 배열·공통 원판 유효영역·고정 초기 합을 소유한다. 기본 면당256²·재현 가능한 두 면의 고정 패치 패턴이며 Uniform 옵션으로 0/부분/전체 초기 상태도 검사한다. 기존 CoinSurfaceContamination이 데이터와 생성 Texture2D 2개를 소유하고 Awake/Reset/OnDestroy에 연결한다. 텍스처는 CPU의 파생 표현만이며 공유 머티리얼에는 아직 연결하지 않는다.
+- **경계·검증 계획:** 이번 a 동안 기존 스칼라 B/광택·HUD·완료 이벤트는 유지한다. 배열 생성·유효영역/면별 독립·초기 분모 불변·Reset 동일성·텍스처 동일성/해제/재생성을 Editor 및 Play 수명 검사로 실제 코드에서 확인한다. 매 프레임 GPU 읽기·텍스처 재생성·패키지 추가는 하지 않는다. b/c·새 셰이더·실제 마우스·Windows 빌드는 이번 범위 밖이며 `s1-06-f2` 보류를 유지한다.
+- **구현·연결:** `CoinSurfaceMaskData.cs`는 CPU 원본과 초기 스냅샷·고정 분모·증분 현재 합·Revision·원판 밖/Side/Invalid 쓰기 거부·0~1 clamp를 제공한다. `CoinSurfaceContamination.cs`에 해상도/패턴 직렬화 설정(기본256/FixedPatches)과 런타임 데이터·텍스처 소유를 추가했다. 기존 `Coin/CoinBody` 인스턴스의 Awake→Reset, 완료 재시작의 기존 ResetSurface, OnDestroy에 연결되며 새 컴포넌트/Inspector 참조는 필요 없다. 설정이 같으면 Reset 시 텍스처를 재사용하고 Release는 멱등이며 Reset으로 재생성한다. Disable/Enable은 상태를 유지한다. 텍스처는 linear RGBA32·mipmap 없음·Clamp·Point, R=CPU 오염의 8bit 표현·A=원판 유효영역·G/B=0이다. CPU 변경 Revision이 있을 때만 명시적으로 Upload하며 텍스처를 재생성하거나 GPU를 읽는 Update 루프는 없다.
+- **중간 상태:** 마스크는 실제 동전 오염 인스턴스에 생성되지만 기존 `ApplyCleaning`·URP Lit PropertyBlock·HUD/완료는 여전히 스칼라 B/광택을 사용한다. 새 텍셀 setter는 데이터 연산만 제공하며 입력/접촉/시간 처리는 하지 않는다. 새 마스크를 화면·HUD의 원본으로 이관했다고 판정하지 않는다. 기본 고정 패턴 초기 합은 Front 약19054.958321·Back 약18192.329665, 유효 텍셀 면당51468이며 양면 텍셀은 같은 면적 가중치다. Uniform 옵션의 0/부분/전체 상태와 패치 패턴은 각각 재현 가능하다.
+- **실제 코드 검증:** Unity 컴파일 후 `CoinSurfaceMaskValidation.RunData()` **212조건·초기 텍셀395,046개 대조 통과** 및 최종 재실행 통과. 4/17/256 해상도×Uniform/FixedPatches×0/.4/1 강도, 독립 정수 원판 판정·양면 독립·유효영역 합·고정 분모·0 분모100%·잘못된 설정/입력 거부·clamp·Reset/새 데이터 비트 동일성을 검사했다. 새 CleaningRoom Play→Pause에서 `BeginLifecycle()` **74조건**, 두 Step 뒤 `VerifyLifecycleCleanup()` **25조건** 통과; 최종 버전 반복도 동일 통과했다. 실제 소유자 반복 Reset/Release 재생성, 0/.4/1×두 패턴의 임시 소유자6개 Awake/Reset/OnDestroy와 CPU→텍스처 전 픽셀 오차(최대 양자화 허용1/510)를 검사했다. 해제 대상 텍스처18개와 임시 소유자6개가 사라지고 실제 동전의2개만 남았다. 기존 `CoinSurfaceMappingValidation.Run()` **920조건·카메라 Raycast30개 통과**로 좌표/커서/A 가시성 회귀도 확인했다. 자체 Editor/API 검사이며 Unity Test Runner나 물리 마우스 검증이 아니다.
+- **종료·Console:** 검사 코드의 구식 InstanceID 조회 경고2개를 Unity 객체 수명 비교로 수정한 뒤 다시 컴파일했다. 수동 Console 삭제 없이 최종 오류0·경고0. Stop 후 Edit Mode·컴파일/임포트 없음·Dirty=false, 객체35·Missing Script0·청소 참조 누락0·런타임 마스크 텍스처0·임시 소유자0. 회전0·CoinBody scale(2,.1,2)·Zoom2.4 및 새 기본 설정256/패턴0을 재조회했다. 씬·Data·Materials·Packages·ProjectSettings 변경 없음; 새 스크립트2개 `.meta`는 Unity가 생성했다.
+- **재실행·한계:** Edit Mode에서 `Squeak Squeak/Validation/S2-02a Mask Data (Edit Mode)` 또는 `CoinSurfaceMaskValidation.RunData()`를 실행한다. 실제 수명은 청소 전 새 Play→Pause→`BeginLifecycle()`→Editor Step 두 번(각 프레임 처리 후)→`VerifyLifecycleCleanup()`이며 같은 이름의 메뉴도 제공한다. LMB/MMB를 해제하고 기존 좌표 검사 때는 포인터를 UI 밖에 둔다. 실패하면 Stop으로 테스트 런타임 상태를 폐기하고 새 Play에서 재실행한다. 마스크 렌더링·드래그 보간·HUD/완료 이관·지역 광택·성능 측정·Windows 빌드·실제 입력은 미실행/후속 범위다. Play 중 스크립트 hot reload·런타임 설정 변경은 이번 수명 검증 범위가 아니다. `s1-06-f2` 보류 유지, a 관련 코드/meta/문서만 한국어 별도 로컬 커밋하며 push 없이 b 전달을 기다린다.
 
 ## 스텝별 검토 결과
 
