@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SqueakSqueak.Cleaning
@@ -10,15 +11,11 @@ namespace SqueakSqueak.Cleaning
     public sealed class CleaningProgressTracker : MonoBehaviour
     {
         [SerializeField]
-        private CoinSurfacePointer surfacePointer;
-
-        [SerializeField]
         private ObjectDirtCleaner objectDirtCleaner;
 
         [SerializeField]
         private CoinSurfaceContamination surfaceContamination;
 
-        private bool isApplicationFocused = true;
         private bool isTimingStopped;
 
         public bool HasStarted { get; private set; }
@@ -41,17 +38,41 @@ namespace SqueakSqueak.Cleaning
 
         public bool IsTimingStopped => isTimingStopped;
 
+        /// <summary>
+        /// HUD가 청소 적용 직후의 수치를 즉시 표시할 수 있도록 알립니다.
+        /// </summary>
+        public event Action ProgressChanged;
+
         private void Awake()
         {
-            if (surfacePointer != null && objectDirtCleaner != null && surfaceContamination != null)
+            if (objectDirtCleaner != null && surfaceContamination != null)
             {
                 return;
             }
 
             Debug.LogError(
-                "CleaningProgressTracker requires Coin Surface Pointer, Object Dirt Cleaner, and Surface Contamination references.",
+                "CleaningProgressTracker requires Object Dirt Cleaner and Surface Contamination references.",
                 this);
             enabled = false;
+        }
+
+        private void OnEnable()
+        {
+            objectDirtCleaner.CleaningApplied += HandleCleaningApplied;
+            surfaceContamination.CleaningApplied += HandleCleaningApplied;
+        }
+
+        private void OnDisable()
+        {
+            if (objectDirtCleaner != null)
+            {
+                objectDirtCleaner.CleaningApplied -= HandleCleaningApplied;
+            }
+
+            if (surfaceContamination != null)
+            {
+                surfaceContamination.CleaningApplied -= HandleCleaningApplied;
+            }
         }
 
         private void Update()
@@ -61,14 +82,14 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
-            if (!HasStarted && surfacePointer.TryGetToolUseSurfaceHit(out _))
+            if (HasStarted && Application.isFocused)
             {
-                HasStarted = true;
-            }
-
-            if (HasStarted && isApplicationFocused)
-            {
+                var previousWholeSeconds = Mathf.FloorToInt(ElapsedSeconds);
                 ElapsedSeconds += Time.unscaledDeltaTime;
+                if (Mathf.FloorToInt(ElapsedSeconds) != previousWholeSeconds)
+                {
+                    ProgressChanged?.Invoke();
+                }
             }
         }
 
@@ -89,11 +110,19 @@ namespace SqueakSqueak.Cleaning
             HasStarted = false;
             ElapsedSeconds = 0f;
             isTimingStopped = false;
+            ProgressChanged?.Invoke();
         }
 
-        private void OnApplicationFocus(bool hasFocus)
+        private void HandleCleaningApplied()
         {
-            isApplicationFocused = hasFocus;
+            if (isTimingStopped)
+            {
+                return;
+            }
+
+            HasStarted = true;
+            ProgressChanged?.Invoke();
         }
+
     }
 }

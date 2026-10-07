@@ -105,16 +105,23 @@ namespace SqueakSqueak.Cleaning
                 return false;
             }
 
-            var origin = gameplayCamera.transform.position;
-            var direction = worldPoint - origin;
-            var targetDistance = direction.magnitude;
+            // 포인터 표면 판정과 동일한 화면 Ray를 사용해야 Orthographic 카메라의
+            // 화면 가장자리에서도 같은 가림물과 동전 표면을 검사할 수 있다.
+            var screenPosition = gameplayCamera.WorldToScreenPoint(worldPoint);
+            if (screenPosition.z <= 0f)
+            {
+                return false;
+            }
+
+            var ray = gameplayCamera.ScreenPointToRay(screenPosition);
+            var targetDistance = Vector3.Dot(worldPoint - ray.origin, ray.direction);
             if (targetDistance <= Mathf.Epsilon)
             {
                 return false;
             }
 
             if (!TryFindClosestPhysicsHit(
-                    new Ray(origin, direction / targetDistance),
+                    ray,
                     targetDistance + surfaceTolerance,
                     out var closestHit))
             {
@@ -256,6 +263,12 @@ namespace SqueakSqueak.Cleaning
 
         private void UpdateSurfaceFromScreenPosition(Vector2 screenPosition)
         {
+            if (IsPointerOverUi)
+            {
+                ClearSurfaceHit();
+                return;
+            }
+
             if (TryFindCoinSurfaceHit(screenPosition, out var hit))
             {
                 CurrentSurfaceHit = hit;

@@ -43,11 +43,25 @@ namespace SqueakSqueak.Cleaning
 
         private void OnEnable()
         {
+            progressTracker.ProgressChanged += HandleProgressChanged;
             ResetDisplayedValues();
             Refresh();
         }
 
-        private void Update()
+        private void OnDisable()
+        {
+            if (progressTracker != null)
+            {
+                progressTracker.ProgressChanged -= HandleProgressChanged;
+            }
+        }
+
+        private void LateUpdate()
+        {
+            Refresh();
+        }
+
+        private void HandleProgressChanged()
         {
             Refresh();
         }

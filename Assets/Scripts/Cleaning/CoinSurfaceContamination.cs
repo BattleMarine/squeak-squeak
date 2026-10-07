@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SqueakSqueak.Cleaning
@@ -40,12 +41,23 @@ namespace SqueakSqueak.Cleaning
         private Color cleanBaseColor;
         private float cleanSmoothness;
         private float cleanMetallic;
+        private float roundInitialSurfaceDirt;
 
         public float SurfaceDirt { get; private set; }
 
-        public float SurfaceDirtRemovalRatio => 1f - SurfaceDirt;
+        /// <summary>
+        /// 현재 청소 판이 시작할 때의 B 오염량을 기준으로 계산한 제거율입니다.
+        /// </summary>
+        public float SurfaceDirtRemovalRatio => roundInitialSurfaceDirt <= Mathf.Epsilon
+            ? 1f
+            : Mathf.Clamp01(1f - SurfaceDirt / roundInitialSurfaceDirt);
 
         public float Polish { get; private set; }
+
+        /// <summary>
+        /// B 타입 오염 또는 광택이 실제로 변경됐을 때 발생합니다.
+        /// </summary>
+        public event Action CleaningApplied;
 
         private void Awake()
         {
@@ -102,6 +114,7 @@ namespace SqueakSqueak.Cleaning
             if (changed)
             {
                 ApplyVisuals();
+                CleaningApplied?.Invoke();
             }
 
             return changed;
@@ -109,7 +122,8 @@ namespace SqueakSqueak.Cleaning
 
         public void ResetSurface()
         {
-            SurfaceDirt = initialSurfaceDirt;
+            roundInitialSurfaceDirt = initialSurfaceDirt;
+            SurfaceDirt = roundInitialSurfaceDirt;
             Polish = initialPolish;
             ApplyVisuals();
         }

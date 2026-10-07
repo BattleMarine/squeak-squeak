@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SqueakSqueak.Cleaning
@@ -23,6 +24,11 @@ namespace SqueakSqueak.Cleaning
         public int RemovedDirtCount { get; private set; }
 
         public float RemovalRatio => InitialDirtCount == 0 ? 1f : (float)RemovedDirtCount / InitialDirtCount;
+
+        /// <summary>
+        /// A 타입 오염이 실제로 감소했을 때 발생합니다.
+        /// </summary>
+        public event Action CleaningApplied;
 
         private void Awake()
         {
@@ -105,6 +111,11 @@ namespace SqueakSqueak.Cleaning
                 {
                     affectedCount++;
                 }
+            }
+
+            if (affectedCount > 0)
+            {
+                CleaningApplied?.Invoke();
             }
 
             return affectedCount;
