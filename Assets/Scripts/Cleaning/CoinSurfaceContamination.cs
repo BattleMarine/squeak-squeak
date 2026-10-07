@@ -9,6 +9,13 @@ namespace SqueakSqueak.Cleaning
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
         private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
+        private static readonly int FrontMaskId = Shader.PropertyToID("_FrontSurfaceMask");
+        private static readonly int BackMaskId = Shader.PropertyToID("_BackSurfaceMask");
+        private static readonly int BoundsId = Shader.PropertyToID("_SurfaceBounds");
+        private static readonly int HalfHeightId = Shader.PropertyToID("_SurfaceHalfHeight");
+        private static readonly int DirtColorId = Shader.PropertyToID("_DirtColor");
+        private static readonly int DirtySmoothnessId = Shader.PropertyToID("_DirtySmoothness");
+        private static readonly int MaximumSmoothnessId = Shader.PropertyToID("_MaximumSmoothness");
 
         [SerializeField]
         private CoinSurfacePointer surfacePointer;
@@ -49,6 +56,7 @@ namespace SqueakSqueak.Cleaning
         private Color cleanBaseColor;
         private float cleanSmoothness;
         private float cleanMetallic;
+        private Bounds surfaceBounds;
         private Color32[] maskUploadPixels;
         private long uploadedMaskRevision = -1;
         private readonly CoinSurfaceBrushStroke surfaceStroke = new();
@@ -71,7 +79,8 @@ namespace SqueakSqueak.Cleaning
         // 미초기화/해제 상태는 완료된 빈 마스크(초기 합0)와 다르게 취급합니다.
         public float SurfaceDirtRemovalRatio => SurfaceMask == null ? 0f : SurfaceMask.RemovalRatio;
 
-        public float Polish { get; private set; }
+        /// <summary>유효 양면 지역 광택의 면적 평균입니다. 한 접촉이 다른 영역을 올리지 않습니다.</summary>
+        public float Polish => SurfaceMask == null ? 0f : SurfaceMask.MeanPolish;
 
         /// <summary>
         /// B 타입 오염 또는 광택이 실제로 변경됐을 때 발생합니다.
@@ -129,21 +138,9 @@ namespace SqueakSqueak.Cleaning
                 return false;
             }
             var changed = surfaceStroke.Apply(SurfaceMask, contact, surfacePointer.SurfaceLocalToWorldMatrix,
-                surfacePointer.SurfaceLocalBounds, tool, tool.BrushRadius, tool.SurfaceDirtRemovalPerSecond, deltaTime);
+                surfacePointer.SurfaceLocalBounds, tool, tool.BrushRadius, tool.SurfaceDirtRemovalPerSecond, deltaTime, tool.PolishGainPerSecond);
             if (!surfaceStroke.LastFrameAccepted) return false;
             if (changed) UploadSurfaceMasks();
-
-            // 전역 광택은 S2-03까지 종전 방식을 유지합니다. 지역 광택을 여기서 선행하지 않습니다.
-            if (Polish < 1f && tool.PolishGainPerSecond > 0f)
-            {
-                var polishEfficiency = 1f - SurfaceDirt;
-                if (polishEfficiency > 0f)
-                {
-                    var previousPolish = Polish;
-                    Polish = Mathf.Min(1f, Polish + tool.PolishGainPerSecond * polishEfficiency * deltaTime);
-                    changed |= Polish != previousPolish;
-                }
-            }
 
             if (changed)
             {
@@ -163,7 +160,6 @@ namespace SqueakSqueak.Cleaning
                 SurfaceMask.Reset();
                 UploadSurfaceMasks();
             }
-            Polish = initialPolish;
             ApplyVisuals();
         }
 
@@ -171,11 +167,11 @@ namespace SqueakSqueak.Cleaning
         {
             if (SurfaceMask != null && FrontDirtMask != null && BackDirtMask != null &&
                 SurfaceMask.Resolution == surfaceMaskResolution && SurfaceMask.InitialIntensity == initialSurfaceDirt &&
-                SurfaceMask.Pattern == surfaceDirtPattern) return;
+                SurfaceMask.Pattern == surfaceDirtPattern && SurfaceMask.InitialPolish == initialPolish) return;
             ReleaseSurfaceMasks();
             try
             {
-                SurfaceMask = new CoinSurfaceMaskData(surfaceMaskResolution, initialSurfaceDirt, surfaceDirtPattern);
+                SurfaceMask = new CoinSurfaceMaskData(surfaceMaskResolution, initialSurfaceDirt, surfaceDirtPattern, initialPolish);
                 maskUploadPixels = new Color32[SurfaceMask.TexelCount];
                 FrontDirtMask = CreateDirtMask("Front");
                 BackDirtMask = CreateDirtMask("Back");
@@ -210,7 +206,8 @@ namespace SqueakSqueak.Cleaning
         {
             for (var i = 0; i < maskUploadPixels.Length; i++)
                 maskUploadPixels[i] = new Color32((byte)Mathf.RoundToInt(SurfaceMask.GetDirt(face, i) * 255f),
-                    0, 0, SurfaceMask.IsValidTexel(i) ? (byte)255 : (byte)0);
+                    (byte)Mathf.RoundToInt(SurfaceMask.GetPolish(face, i) * 255f), 0,
+                    SurfaceMask.IsValidTexel(i) ? (byte)255 : (byte)0);
             texture.SetPixels32(maskUploadPixels);
             texture.Apply(false, false);
         }
@@ -226,6 +223,14 @@ namespace SqueakSqueak.Cleaning
             SurfaceMask = null;
             maskUploadPixels = null;
             uploadedMaskRevision = -1;
+            if (coinRenderer != null && propertyBlock != null)
+            {
+                coinRenderer.GetPropertyBlock(propertyBlock);
+                // MaterialPropertyBlock은 null Texture를 허용하지 않습니다. 소유 자원 참조를 공용 빈 마스크로 교체합니다.
+                propertyBlock.SetTexture(FrontMaskId, Texture2D.blackTexture);
+                propertyBlock.SetTexture(BackMaskId, Texture2D.blackTexture);
+                coinRenderer.SetPropertyBlock(propertyBlock);
+            }
         }
 
         private static void ReleaseTexture(Texture2D texture)
@@ -245,13 +250,17 @@ namespace SqueakSqueak.Cleaning
             }
 
             var material = coinRenderer.sharedMaterial;
-            if (!material.HasProperty(BaseColorId) || !material.HasProperty(SmoothnessId) || !material.HasProperty(MetallicId))
+            foreach (var id in new[] { BaseColorId, SmoothnessId, MetallicId, FrontMaskId, BackMaskId,
+                BoundsId, HalfHeightId, DirtColorId, DirtySmoothnessId, MaximumSmoothnessId })
             {
-                Debug.LogError("CoinSurfaceContamination requires a URP Lit material with Base Color, Smoothness, and Metallic properties.", this);
+                if (material.HasProperty(id)) continue;
+                Debug.LogError("CoinSurfaceContamination requires the dedicated Coin Surface material property contract.", this);
                 return false;
             }
-
-            return true;
+            var meshFilter = coinRenderer.GetComponent<MeshFilter>();
+            if (meshFilter != null && CoinSurfaceMapper.TryGetSupportedBounds(meshFilter.sharedMesh, out surfaceBounds)) return true;
+            Debug.LogError("CoinSurfaceContamination requires the supported Coin surface mesh.", this);
+            return false;
         }
 
         private void CaptureCleanMaterialValues()
@@ -264,14 +273,18 @@ namespace SqueakSqueak.Cleaning
 
         private void ApplyVisuals()
         {
-            // S2-03의 지역 셰이더 전까지 전체 동전에 집계 기반 임시 색상/광택을 적용합니다.
-            var cleanSurfaceRatio = 1f - SurfaceDirt;
-            var baseSmoothness = Mathf.Lerp(dirtySmoothness, cleanSmoothness, cleanSurfaceRatio);
-
             coinRenderer.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor(BaseColorId, Color.Lerp(dirtColor, cleanBaseColor, cleanSurfaceRatio));
-            propertyBlock.SetFloat(SmoothnessId, Mathf.Lerp(baseSmoothness, maximumSmoothness, Polish));
-            propertyBlock.SetFloat(MetallicId, Mathf.Lerp(cleanMetallic * 0.35f, cleanMetallic, cleanSurfaceRatio));
+            propertyBlock.SetColor(BaseColorId, cleanBaseColor);
+            propertyBlock.SetFloat(SmoothnessId, cleanSmoothness);
+            propertyBlock.SetFloat(MetallicId, cleanMetallic);
+            propertyBlock.SetColor(DirtColorId, dirtColor);
+            propertyBlock.SetFloat(DirtySmoothnessId, dirtySmoothness);
+            propertyBlock.SetFloat(MaximumSmoothnessId, maximumSmoothness);
+            propertyBlock.SetVector(BoundsId, new Vector4(surfaceBounds.center.x, surfaceBounds.center.y,
+                surfaceBounds.center.z, surfaceBounds.extents.x));
+            propertyBlock.SetFloat(HalfHeightId, surfaceBounds.extents.y);
+            propertyBlock.SetTexture(FrontMaskId, FrontDirtMask != null ? FrontDirtMask : Texture2D.blackTexture);
+            propertyBlock.SetTexture(BackMaskId, BackDirtMask != null ? BackDirtMask : Texture2D.blackTexture);
             coinRenderer.SetPropertyBlock(propertyBlock);
         }
 

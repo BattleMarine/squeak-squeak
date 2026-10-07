@@ -201,7 +201,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: d174100f4398f5e4182f936d2198a7d8, type: 2}
+  - {fileID: 2100000, guid: e9525948194e3f640a60667e1ac67168, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -250,6 +250,8 @@ MonoBehaviour:
   coinRenderer: {fileID: 62827140}
   initialSurfaceDirt: 1
   initialPolish: 0
+  surfaceMaskResolution: 256
+  surfaceDirtPattern: 0
   dirtColor: {r: 0.16, g: 0.075, b: 0.03, a: 1}
   dirtySmoothness: 0.1
   maximumSmoothness: 0.9

@@ -146,9 +146,10 @@ namespace SqueakSqueak.EditorValidation
                 owner.SurfaceMask.InitialDirtSum == initialSum, "반복 Reset 자원 재사용/초기 합", ref checks);
             var changedIndex = 128 * 256 + 128;
             owner.SurfaceMask.TrySetDirt(CoinSurfaceFace.Front, changedIndex, 0f);
+            owner.SurfaceMask.TrySetPolish(CoinSurfaceFace.Front, changedIndex, .65f);
             owner.UploadSurfaceMasks();
             ValidateTextures(owner, ref checks);
-            Check(owner.SurfaceDirt < scalar && owner.SurfaceDirtRemovalRatio > 0f && owner.Polish == 0f,
+            Check(owner.SurfaceDirt < scalar && owner.SurfaceDirtRemovalRatio > 0f && owner.Polish > 0f,
                 "마스크 변경에서 파생된 잔여 평균/제거율과 광택 분리", ref checks);
             owner.enabled = false;
             owner.enabled = true;
@@ -174,6 +175,7 @@ namespace SqueakSqueak.EditorValidation
                 try
                 {
                     var renderer = temporary.AddComponent<MeshRenderer>();
+                    temporary.AddComponent<MeshFilter>().sharedMesh = owner.GetComponent<MeshFilter>().sharedMesh;
                     renderer.sharedMaterial = owner.GetComponent<Renderer>().sharedMaterial;
                     var clone = temporary.AddComponent<CoinSurfaceContamination>();
                     var original = new SerializedObject(owner);
@@ -182,11 +184,12 @@ namespace SqueakSqueak.EditorValidation
                         serialized.FindProperty(field).objectReferenceValue = original.FindProperty(field).objectReferenceValue;
                     serialized.FindProperty("coinRenderer").objectReferenceValue = renderer;
                     serialized.FindProperty("initialSurfaceDirt").floatValue = intensity;
+                    serialized.FindProperty("initialPolish").floatValue = intensity;
                     serialized.FindProperty("surfaceDirtPattern").enumValueIndex = (int)pattern;
                     serialized.ApplyModifiedPropertiesWithoutUndo();
                     temporary.SetActive(true);
                     Check(clone.SurfaceMask != null && clone.SurfaceMask.InitialIntensity == intensity &&
-                        clone.SurfaceMask.Pattern == pattern && Math.Abs(clone.SurfaceDirt -
+                        clone.SurfaceMask.Pattern == pattern && clone.Polish == intensity && Math.Abs(clone.SurfaceDirt -
                             clone.SurfaceMask.CurrentDirtSum / (2d * clone.SurfaceMask.ValidTexelCount)) < 1e-7,
                         "동적 소유자 Awake 0/부분/전체 설정", ref checks);
                     Check(clone.SurfaceDirtRemovalRatio == (intensity == 0f ? 1f : 0f), "소유자 마스크 초기 분모", ref checks);
@@ -194,7 +197,9 @@ namespace SqueakSqueak.EditorValidation
                     var cloneFront = clone.FrontDirtMask;
                     var cloneSum = clone.SurfaceMask.InitialDirtSum;
                     clone.ResetSurface();
-                    Check(clone.FrontDirtMask == cloneFront && clone.SurfaceMask.CurrentDirtSum == cloneSum,
+                    clone.SurfaceMask.TrySetPolish(CoinSurfaceFace.Front, changedIndex, 1f - intensity);
+                    clone.ResetSurface();
+                    Check(clone.FrontDirtMask == cloneFront && clone.SurfaceMask.CurrentDirtSum == cloneSum && clone.Polish == intensity,
                         "0/부분/전체 소유자 Reset", ref checks);
                     releasedTextures.Add(clone.FrontDirtMask);
                     releasedTextures.Add(clone.BackDirtMask);
@@ -233,7 +238,7 @@ namespace SqueakSqueak.EditorValidation
                 var same = true;
                 for (var index = 0; index < pixels.Length; index++)
                     same &= Math.Abs(pixels[index].r / 255d - owner.SurfaceMask.GetDirt(face, index)) <= 1d / 510d + 1e-7 &&
-                        pixels[index].g == 0 && pixels[index].b == 0 &&
+                        Math.Abs(pixels[index].g / 255d - owner.SurfaceMask.GetPolish(face, index)) <= 1d / 510d + 1e-7 && pixels[index].b == 0 &&
                         pixels[index].a == (owner.SurfaceMask.IsValidTexel(index) ? 255 : 0);
                 Check(same, "CPU 파생 R8 양자화/원판 alpha", ref checks);
             }

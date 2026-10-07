@@ -173,21 +173,30 @@ namespace SqueakSqueak.EditorValidation
                         owner.SurfaceDirtRemovalRatio == 0f, "다음 판 Reset에서만 설정 반영", ref checks);
                     Set(owner, "surfaceMaskResolution", originalResolution);
                 }
-                // B가 전혀 없어도 광택이 독립적으로 진행합니다. 지역 광택은 아직 아닙니다.
+                // B가 전혀 없어도 접촉한 지역만 광택이 진행합니다.
                 selection.TrySelect(CleaningToolId.PolishingCloth);
                 Configure(0f, CoinSurfaceDirtPattern.Uniform);
                 var beforeApplied = appliedEvents; var beforeChanged = progressEvents;
                 Check(Apply(CoinSurfaceFace.Front, new Vector2(.5f, .5f), 1f) &&
-                    Math.Abs(owner.Polish - selection.CurrentTool.PolishGainPerSecond) < 1e-7 &&
+                    owner.Polish > 0f && owner.Polish < selection.CurrentTool.PolishGainPerSecond * .1f &&
+                    owner.SurfaceMask.GetCurrentPolishSum(CoinSurfaceFace.Back) == 0d &&
+                    Math.Abs(owner.Polish - SumPolish(owner.SurfaceMask) / (2d * owner.SurfaceMask.ValidTexelCount)) < 1e-7 &&
                     owner.SurfaceDirt == 0f && owner.SurfaceDirtRemovalRatio == 1f &&
                     appliedEvents == beforeApplied + 1 && progressEvents == beforeChanged + 1 && tracker.HasStarted,
                     "초기B0 광택/이벤트/타이머", ref checks);
                 Configure(.4f, CoinSurfaceDirtPattern.FixedPatches);
                 beforeApplied = appliedEvents; beforeChanged = progressEvents;
+                var center = 128 * 256 + 128;
+                var centerDirt = owner.SurfaceMask.GetDirt(CoinSurfaceFace.Front, center);
                 Apply(CoinSurfaceFace.Front, new Vector2(.5f, .5f), 1f);
-                Check(Math.Abs(owner.Polish - selection.CurrentTool.PolishGainPerSecond * (1f - owner.SurfaceDirt)) < 1e-7 &&
+                var centerAfter = owner.SurfaceMask.GetDirt(CoinSurfaceFace.Front, center);
+                var weight = Math.Pow(1d - 2d * Math.Pow(1d / 256d, 2) / Math.Pow(selection.CurrentTool.BrushRadius, 2), 2);
+                var expectedCenter = selection.CurrentTool.PolishGainPerSecond * weight * (1d - (centerDirt + centerAfter) * .5d);
+                Check(Math.Abs(owner.SurfaceMask.GetPolish(CoinSurfaceFace.Front, center) - expectedCenter) < 1e-7 &&
+                    owner.SurfaceMask.GetCurrentPolishSum(CoinSurfaceFace.Back) == 0d &&
+                    Math.Abs(owner.Polish - SumPolish(owner.SurfaceMask) / (2d * owner.SurfaceMask.ValidTexelCount)) < 1e-7 &&
                     appliedEvents == beforeApplied + 1 && progressEvents == beforeChanged + 1,
-                    "B/광택 동시 변화도 이벤트1회, 잔여 평균 기반 전역 효율", ref checks);
+                    "B/지역 광택 동시 변화도 이벤트1회, 해당 텍셀 시간평균 B 효율", ref checks);
                 CheckVisual(owner, ref checks);
                 Configure(0f, CoinSurfaceDirtPattern.Uniform, .5f);
                 beforeApplied = appliedEvents; beforeChanged = progressEvents;
@@ -245,7 +254,17 @@ namespace SqueakSqueak.EditorValidation
                     RemoveA(cleaner, 4);
                     selection.TrySelect(CleaningToolId.PolishingCloth);
                     Apply(CoinSurfaceFace.Front, new Vector2(.5f, .5f), 100f);
+                    Check(owner.Polish < .1f && owner.SurfaceMask.GetCurrentPolishSum(CoinSurfaceFace.Back) == 0d,
+                        "한 점 Hold로 전체 광택 완료 불가", ref checks);
                     Check(!completion.TryCompleteIfEligible(), "기본A90% 미충족(4/5)은 완료하지 않음", ref checks);
+                    foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back })
+                    for (var j = 0; j <= 16; j++)
+                    for (var i = 0; i <= 16; i++)
+                    {
+                        var q = new Vector2((i - 8) * .12f, (j - 8) * .12f);
+                        if (q.sqrMagnitude <= 1f) Apply(face, (q + Vector2.one) * .5f, 10000f);
+                    }
+                    Check(owner.Polish == 1f, "실제 양면 지역 광택 브러시 API 전체 복원", ref checks);
                     RemoveA(cleaner, 5);
                     CheckHud();
                     maximumGpuError = Math.Max(maximumGpuError, ValidateGpu(owner, ref checks));
@@ -299,12 +318,14 @@ namespace SqueakSqueak.EditorValidation
         {
             var renderer = owner.GetComponent<Renderer>(); var block = new MaterialPropertyBlock();
             renderer.GetPropertyBlock(block);
-            var clean = 1f - owner.SurfaceDirt;
-            var expectedColor = Color.Lerp(Get<Color>(owner, "dirtColor"), renderer.sharedMaterial.GetColor("_BaseColor"), clean);
-            var expectedSmoothness = Mathf.Lerp(Mathf.Lerp(Get<float>(owner, "dirtySmoothness"),
-                renderer.sharedMaterial.GetFloat("_Smoothness"), clean), Get<float>(owner, "maximumSmoothness"), owner.Polish);
-            Check(block.GetColor("_BaseColor") == expectedColor && Math.Abs(block.GetFloat("_Smoothness") - expectedSmoothness) < 1e-7,
-                "전체 색상/광택은 마스크 잔여 평균의 임시 표현", ref checks);
+            Check(renderer.sharedMaterial.shader.name == "SqueakSqueak/Coin Surface" &&
+                block.GetColor("_BaseColor") == renderer.sharedMaterial.GetColor("_BaseColor") &&
+                block.GetFloat("_Smoothness") == renderer.sharedMaterial.GetFloat("_Smoothness") &&
+                block.GetTexture("_FrontSurfaceMask") == owner.FrontDirtMask &&
+                block.GetTexture("_BackSurfaceMask") == owner.BackDirtMask &&
+                block.GetColor("_DirtColor") == Get<Color>(owner, "dirtColor") &&
+                block.GetFloat("_MaximumSmoothness") == Get<float>(owner, "maximumSmoothness"),
+                "전용 셰이더에 양면 텍스처/깨끗한 금속 상수 연결, 집계 기반 전체색 제거", ref checks);
         }
 
         private static double ValidateGpu(CoinSurfaceContamination owner, ref int checks)
@@ -326,7 +347,8 @@ namespace SqueakSqueak.EditorValidation
                     for (var index = 0; index < pixels.Length; index++)
                     {
                         maximumError = Math.Max(maximumError, Math.Abs(pixels[index].r / 255d - owner.SurfaceMask.GetDirt(face, index)));
-                        valid &= pixels[index].g == 0 && pixels[index].b == 0 &&
+                        maximumError = Math.Max(maximumError, Math.Abs(pixels[index].g / 255d - owner.SurfaceMask.GetPolish(face, index)));
+                        valid &= pixels[index].b == 0 &&
                             pixels[index].a == (owner.SurfaceMask.IsValidTexel(index) ? 255 : 0);
                     }
                     Check(valid && maximumError <= 1d / 510d + 1e-7, "GPU 양면 R8 양자화/유효 alpha 대조", ref checks);
@@ -357,7 +379,19 @@ namespace SqueakSqueak.EditorValidation
         }
 
         private static void SetPolish(CoinSurfaceContamination owner, float value)
-        { Set(owner, "<Polish>k__BackingField", value); Call(owner, "ApplyVisuals"); }
+        {
+            foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back })
+                for (var index = 0; index < owner.SurfaceMask.TexelCount; index++) owner.SurfaceMask.TrySetPolish(face, index, value);
+            owner.UploadSurfaceMasks(); Call(owner, "ApplyVisuals");
+        }
+
+        private static double SumPolish(CoinSurfaceMaskData data)
+        {
+            var sum = 0d;
+            foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back })
+                for (var index = 0; index < data.TexelCount; index++) if (data.IsValidTexel(index)) sum += data.GetPolish(face, index);
+            return sum;
+        }
 
         private static void RemoveA(ObjectDirtCleaner cleaner, int count)
         {
