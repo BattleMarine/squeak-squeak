@@ -59,6 +59,16 @@ namespace SqueakSqueak.Cleaning
             }
         }
 
+        public void ShowContact(CoinSurfaceContact contact)
+        {
+            if (!contact.IsCleanable)
+            {
+                Hide();
+                return;
+            }
+            ShowAt(contact.WorldPosition, contact.WorldNormal);
+        }
+
         public void ShowAt(Vector3 surfacePosition, Vector3 surfaceNormal)
         {
             var tool = toolSelection != null ? toolSelection.CurrentTool : null;

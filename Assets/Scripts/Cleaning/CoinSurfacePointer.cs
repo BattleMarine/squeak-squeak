@@ -57,6 +57,13 @@ namespace SqueakSqueak.Cleaning
         private Vector3 initialCoinPosition;
         private Quaternion initialCoinRotation;
         private float initialOrthographicSize;
+        private MeshCollider surfaceMeshCollider;
+        private Mesh surfaceMesh;
+        private Bounds surfaceLocalBounds;
+
+        public CoinSurfaceContact CurrentSurfaceContact { get; private set; }
+
+        public bool HasCleanableContact => HasSurfaceHit && CurrentSurfaceContact.IsCleanable;
 
         public bool HasSurfaceHit { get; private set; }
 
@@ -91,6 +98,16 @@ namespace SqueakSqueak.Cleaning
             }
 
             surfaceHit = CurrentSurfaceHit;
+            return true;
+        }
+
+        /// <summary>기존 LMB·UI·MMB 입력 판정을 통과한 앞/뒷면 접촉만 제공합니다.</summary>
+        public bool TryGetToolUseContact(out CoinSurfaceContact contact)
+        {
+            contact = default;
+            if (!isActiveAndEnabled || !Application.isFocused || !TryGetToolUseSurfaceHit(out _) || !HasCleanableContact)
+                return false;
+            contact = CurrentSurfaceContact;
             return true;
         }
 
@@ -273,7 +290,11 @@ namespace SqueakSqueak.Cleaning
             {
                 CurrentSurfaceHit = hit;
                 HasSurfaceHit = true;
-                toolCursor.ShowAt(hit.point, hit.normal);
+                CurrentSurfaceContact = default;
+                CoinSurfaceMapper.TryMapHit(surfaceMeshCollider, surfaceMesh, surfaceLocalBounds,
+                    hit, out var contact);
+                CurrentSurfaceContact = contact;
+                toolCursor.ShowContact(contact);
                 return;
             }
 
@@ -285,6 +306,16 @@ namespace SqueakSqueak.Cleaning
             if (inputActions == null || gameplayCamera == null || coinCollider == null || coinTransform == null || toolCursor == null)
             {
                 Debug.LogError("CoinSurfacePointer requires Input Actions, Camera, Coin Collider, Coin Transform, and Tool Cursor references.", this);
+                return false;
+            }
+
+            surfaceMeshCollider = coinCollider as MeshCollider;
+            var meshFilter = coinCollider.GetComponent<MeshFilter>();
+            surfaceMesh = surfaceMeshCollider != null ? surfaceMeshCollider.sharedMesh : null;
+            if (meshFilter == null || meshFilter.sharedMesh != surfaceMesh ||
+                !CoinSurfaceMapper.TryGetSupportedBounds(surfaceMesh, out surfaceLocalBounds))
+            {
+                Debug.LogError("CoinSurfacePointer requires matching flat-cap circular Mesh/Collider geometry.", this);
                 return false;
             }
 
@@ -358,6 +389,7 @@ namespace SqueakSqueak.Cleaning
         {
             HasSurfaceHit = false;
             CurrentSurfaceHit = default;
+            CurrentSurfaceContact = default;
             toolCursor?.Hide();
         }
     }

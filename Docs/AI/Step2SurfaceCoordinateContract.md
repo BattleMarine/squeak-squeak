@@ -1,7 +1,7 @@
 # S2-01a — 동전 표면 좌표 계약
 
 확정: 2026-10-07. 기준: `d0380ee`, [Step 2 지시서](../Step2-구현지시서.md) §3.1.
-이 문서는 S2-01b 구현을 위한 계약이다. **런타임 매핑·커서 이관·마스크는 아직 구현하지 않았다.**
+이 문서는 S2-01a 계약과 S2-01b 구현 기준이다. **런타임 매핑·Pointer/커서 연결은 구현·검증했으며, 마스크와 기존 전체 B 감소 교체는 S2-02에 남아 있다.**
 
 ## 범위와 소유자
 
@@ -9,7 +9,7 @@
 - 좌표 기준은 **`coinCollider.transform` (`Coin/CoinBody`)**이다. 회전 대상 `coinTransform` (`Coin`)이나 월드 XZ를 기준으로 삼지 않는다.
 - S2-01b에서 `SqueakSqueak.Cleaning`의 작은 무상태 매핑 코드로 구현한다. 별도 Manager·입력 루프·상태 원본·패키지는 추가하지 않는다. 기존 Pointer의 가장 가까운 적중·UI/MMB 차단 경로를 소비한다.
 - 입력: 명시적으로 연결된 대상 MeshCollider, 그 Collider의 실제 RaycastHit, 현재 localToWorldMatrix, 검증된 공유 Mesh의 local bounds. 출력: 면 ID·정규화 좌표·투영 접촉점·표면 월드 법선. 입력 원본과 출력은 읽기 전용이며 매핑 자체는 청소·재질·Transform을 변경하지 않는다.
-- 제안 API: `TryMapHit(MeshCollider target, RaycastHit hit, out CoinSurfaceContact contact)`. contact는 읽기 전용 `Face`, `IsCleanable`(Front/Back만 true), `Uv`, `LocalPosition`, `WorldPosition`, `WorldNormal`을 제공한다. false면 contact는 Invalid/default; true라도 Side는 청소 불가다. Side의 Uv/LocalPosition은 default로 두고 WorldPosition/WorldNormal은 실제 적중값을 유지하되, 소비자는 `IsCleanable` 확인 전 쓰기용 좌표를 읽지 않는다. 접촉 생성은 매핑 경로로 제한한다.
+- 구현 API: `CoinSurfaceMapper.TryGetSupportedBounds(Mesh, out Bounds)`로 초기 형상을 검사하고, `TryMapHit(MeshCollider target, Mesh expectedMesh, Bounds localBounds, RaycastHit hit, out CoinSurfaceContact contact)`에 캐시한 Mesh/bounds를 전달한다. 초기 제안에서 Mesh/bounds 인자를 추가해 매 hover마다 정점 배열을 읽지 않으며 현재 변환 행렬은 적중 때 읽는다. 순수 좌표 검사는 `TryMapPoint`, 같은 면 월드 거리 검사는 `IsWithinBrush`를 사용한다. contact는 읽기 전용 `Face`, `IsCleanable`(Front/Back만 true), `Uv`, `LocalPosition`, `WorldPosition`, `WorldNormal`을 제공한다. false면 contact는 Invalid/default; true라도 Side는 청소 불가다. Side의 Uv/LocalPosition은 default로 두고 WorldPosition/WorldNormal은 실제 적중값을 유지하되, 소비자는 `IsCleanable` 확인 전 쓰기용 좌표를 읽지 않는다. 접촉 생성은 매핑 경로로 제한한다.
 
 ## 면·좌표·텍셀
 
@@ -21,6 +21,7 @@
 | Side=3 | 측면·모서리의 비평면 법선 | 불가 | 없음; 집계 제외 |
 
 - `c = sharedMesh.bounds.center`, `r = bounds.extents.x`, `h = bounds.extents.y`. X/Z 반경이 같은 원판형 평면 캡 Mesh만 지원한다. bounds만으로 임의 Mesh를 원판으로 자동 인정하지 않는다. 현재 builtin Cylinder를 최초 지원 대상으로 검증하며 Mesh 교체 시 다시 확인한다.
+- b의 초기 정점 검사는 유한값·원판/높이 범위·캡 또는 측면 경계 위치·양쪽 캡 정점 수를 확인한다. 임의 Mesh의 폐곡면/삼각형 토폴로지 전체를 보증하지 않는다. 현재 씬 Mesh는 실제 캡/측면 Physics 적중으로 추가 확인했다. 다른 Mesh는 교체 단계에서 재검증하며, 같은 Mesh 인스턴스의 런타임 정점 변경은 지원하지 않는다. sharedMesh 교체 시 캐시 불일치로 매핑을 거부하며 초기화 경로를 다시 구성해야 한다.
 - 저장 씬은 Cylinder sharedMesh fileID 10206을 Renderer/Convex MeshCollider가 공유하고 CoinBody scale은 `(2,0.1,2)`이다. local `c=(0,0,0), r=0.5, h=1`은 S2-00 에디터 조회 근거다. **이번 a에서는 에디터 재조회하지 못했다.**
 - `pLocal = M.inverse.MultiplyPoint3x4(hit.point)`, `q = ((pLocal.x-c.x)/r, (pLocal.z-c.z)/r)`, `uv = (q+1)/2`. q는 원판 반경 1, uv는 `[0,1]²`이며 중심은 `(0.5,0.5)`다. 양쪽 면 모두 U=+X, V=+Z이다. **Back에서 U/V를 뒤집지 않는다.** 뒷면을 직접 바라볼 때 보이는 좌우 반전은 자세에 따른 자연스러운 결과이며 셰이더·커서도 같은 축을 따른다.
 - `q.x²+q.y²<=1`이 유효 원판이다. 대상 밖 입력을 먼저 Clamp01하여 유효 영역으로 옮기지 않는다. 단, 부동소수 허용분 `1 < q² <= 1+1e-5`만 q를 단위원으로 투영한다. `q²>1+1e-5`는 Invalid다.
@@ -42,14 +43,14 @@
 - 지원: 이동·회전 및 축들이 직교하는 비균일 스케일. 각 길이는 `[1e-4,1e4]`, 최대/최소 길이 비율은 `<=1e4`; 정규화한 축의 쌍별 `abs(dot)<=1e-4`, 정규화 삼중곱 `dot(cross(bx/sx,by/sy),bz/sz)>0.9999`다. 실제 `(2,0.1,2)`는 지원한다. X/Z 배율이 달라도 로컬 원판→월드 타원을 지원한다.
 - 실패: 0/준0 축, 비유한 값, 위 수치 범위 밖, 반사(음의 handedness), 부모 비균일 스케일과 자식 회전으로 생기는 shear. 음수 localScale을 분해해 추정하지 않으며 **최종 행렬**이 proper rotation+positive scale과 동등한 경우는 지원한다(두 축 음수는 회전과 동등할 수 있음). 실패 시 청소 불가·이력 초기화, 설정 진단은 상태 변화 때만 내고 매 프레임 로그를 쌓지 않는다.
 - 유한한 양수 R=`CleaningToolDefinition.BrushRadius`는 **월드 단위**다. 0/음수/NaN/Infinity 반경은 쓰기 불가다. 현재 마른 천 .32·솔 .18·광택천 .28은 유지한다.
-- 같은 Face의 후보 q와 접촉 중심 q0에 대해 `deltaLocal=(r*(q.x-q0.x),0,r*(q.y-q0.y))`, `distanceSquared=M.MultiplyVector(deltaLocal).sqrMagnitude`. `distanceSquared<=R²`인 유효 원판 후보만 브러시 안이다. local 3D 거리나 화면 픽셀 거리, 평균 scale로 나눈 반경을 사용하지 않는다.
+- 같은 Face의 후보 q와 접촉 중심 q0에 대해 `deltaLocal=(r*(q.x-q0.x),0,r*(q.y-q0.y))`, `distanceSquared=M.MultiplyVector(deltaLocal).sqrMagnitude`. 이론상 `distanceSquared<=R²`인 유효 원판 후보만 브러시 안이다. b 구현에서는 float 회전/역변환의 정확한 경계 오차에 한해 `R²*(1+1e-5)`를 허용하고 double로 반경 제곱을 비교한다. 반경의 99.9%/정확한 경계/100.1%는 각각 안/안/밖으로 검증했다. local 3D 거리나 화면 픽셀 거리, 평균 scale로 나눈 반경을 사용하지 않는다.
 - 직교 지원 범위에서 동등식은 `(r*sx*deltaQ.x)²+(r*sz*deltaQ.y)²<=R²`. UV 후보 경계 상자는 `halfU=R/(2*r*sx)`, `halfV=R/(2*r*sz)`이며 원판/텍셀 범위로 잘라도 **최종 거리식**을 생략하지 않는다. 현재 halfU/halfV는 .16/.16, .09/.09, .14/.14다.
-- 커서 링은 이 월드 접평면에 반경 R의 원으로 그린다. 옆면·Invalid는 최소안으로 중심/링을 모두 숨겨 사용 불가를 표시한다. 이는 b에서 연결할 동작이지 현재 씬의 구현 상태가 아니다. A 청소 규칙은 변경하지 않는다.
+- 커서 링은 이 월드 접평면에 반경 R의 원으로 그린다. b에서 연결했으며 옆면·Invalid는 중심/링을 모두 숨겨 사용 불가를 표시한다. A 청소 규칙은 변경하지 않는다.
 
 ## 반대면 차단·통합 경계
 
 - 한 접촉에는 정확히 한 Face만 있다. Front/Back 각각 배열·텍스처를 보유하고 면 ID로 해당 채널을 선택한다. 후보 위치가 가까워도 다른 Face의 후보는 **거리 계산 전** 거부한다. Side/Invalid는 양쪽 B/광택 쓰기와 집계에 참여하지 않는다.
-- b에서 Pointer의 hover 적중→매핑→커서 표시 경로를 연결한다. 기존 A 소비자용 RaycastHit 경로와 차단 상태는 보존하며 B용 `TryGetToolUseContact` 같은 최소 경로는 기존 `TryGetToolUseSurfaceHit` 성공을 전제로 한다. hover 가능과 LMB 청소 가능을 구분한다. 매핑 성공 자체가 도구 사용 승인이 아니다.
+- b에서 Pointer의 hover 적중→매핑→커서 표시 경로를 연결했다. 기존 A 소비자용 RaycastHit 경로와 차단 상태는 보존하며 B용 `TryGetToolUseContact`는 Pointer 활성·포커스·기존 `TryGetToolUseSurfaceHit` 성공 및 Front/Back 접촉을 전제로 한다. `HasCleanableContact`는 hover 상태이며 LMB 청소 허가와 다르다. 매핑 성공 자체가 도구 사용 승인이 아니다.
 - b는 좌표·커서만 구현/검증한다. **기존 전체 B 감소는 S2-02에서 교체한다.** 옆면 청소 불가 계약을 b에서 B 런타임 전체에 적용했다고 보고하지 않는다. S2-02의 마스크 접촉 이력은 동전 밖/UI/MMB/포커스/도구·Face 변경/재시작에서 끊고 프레임 시간을 표본별로 나눈다.
 - sharedMesh bounds/설정은 초기화·검증 시 읽고 현재 M은 사용 시 갱신한다. 회전 후 오래된 M을 캐시하거나 Editor-only API를 런타임 매핑에 넣지 않는다. 기존 입력·완료·Reset·시리얼라이즈 필드는 b에서 필요한 최소 추가만 하며 저장 참조를 유지한다.
 
@@ -76,3 +77,9 @@
 현재 Git·저장 씬·코드는 파일로 확인했다. Unity MCP `GetProjectRoot`는 미응답으로 읽기 묶음을 취소했고 `Get-Process -Name Unity`도 결과가 없었다. 연결·활성 씬·Console·실제 Collider 좌표를 이번 실행에서 확인했다고 주장하지 않는다. a의 수치 검증은 계약 수식의 독립 계산이며 Unity 구현·Play Mode·빌드를 대체하지 않는다.
 
 설치된 실행 파일은 `C:/Program Files/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe`다. Test-Path=true, 파일 ProductVersion=`6000.3.23f1_09d2ecc7fb28`을 읽기로 확인했다. b에서 사용자 작업과 충돌이 없음을 다시 확인한 뒤 필요하면 이 실행 파일과 프로젝트 경로로 에디터를 시작할 수 있다. 이번 a에서는 실행하지 않았다.
+
+## b 구현·검증 결과
+
+2026-10-07, 기준 `9c051ee`. `CoinSurfaceMapper`·Pointer·커서와 Editor 전용 `CoinSurfaceMappingValidation`을 구현했다. Unity `6000.3.23f1`의 기존 해당 프로젝트 에디터에서 컴파일 후 새 CleaningRoom Play Mode를 Pause해 실제 코드/Physics 검사를 실행했다. 최종 **920개 검사·카메라 Raycast 30개 통과**, 동일 검사를 재실행해 같은 결과를 확인했다. UV 최대 오차 `6.53616e-7`, 월드 위치 `1.019457e-6`, 48점 커서 링 반경 `1.192093e-7`이다.
+
+재실행: CleaningRoom에서 새 Play → Pause → `Squeak Squeak/Validation/S2-01 Surface Mapping (Paused Play Mode)` 메뉴 또는 MCP에서 `SqueakSqueak.EditorValidation.CoinSurfaceMappingValidation.Run()` 호출. 실제 포인터는 UI 밖에 두고 LMB/MMB를 누르지 않는다. 검사는 런타임 회전·줌·선택을 일시 변경한 뒤 finally에서 복원하며 씬/에셋을 저장하지 않는다. 상세 근거와 한계는 [체크리스트 S2-01b 기록](Step2ImplementationChecklist.md)에 둔다. 실제 마우스 청소·마스크 쓰기·Windows 빌드는 이번 검증 범위가 아니다.
