@@ -18,6 +18,7 @@ namespace SqueakSqueak.EditorValidation
         public static string Run()
         {
             var checks = 0; var maxHz = 0d; var maxAnalytic = 0d;
+            var maxHzRemoval = 0d; var maxHzMeanPolish = 0d;
             foreach (var initial in new[] { 0f, .4f, 1f })
             {
                 var data = new CoinSurfaceMaskData(65, .4f, CoinSurfaceDirtPattern.Uniform, initial);
@@ -78,6 +79,8 @@ namespace SqueakSqueak.EditorValidation
                         error = Math.Max(error, Math.Abs(actual.GetDirt(CoinSurfaceFace.Front, i) - reference.GetDirt(CoinSurfaceFace.Front, i)));
                     }
                     maxHz = Math.Max(maxHz, error);
+                    maxHzRemoval = Math.Max(maxHzRemoval, Math.Abs(actual.RemovalRatio - reference.RemovalRatio));
+                    maxHzMeanPolish = Math.Max(maxHzMeanPolish, Math.Abs(actual.MeanPolish - reference.MeanPolish));
                     Check(error < .001 && Math.Abs(actual.MeanPolish - reference.MeanPolish) < .0001,
                         "30/60/120Hz Hold/Drag/빠른 Drag 동일 경로·시간", ref checks);
                 }
@@ -125,7 +128,7 @@ namespace SqueakSqueak.EditorValidation
             Check(!new CoinSurfaceBrushStroke().Apply(rejected, side, Matrix, Bounds, Tool, .2f, .2f, .1f, .3f) &&
                 !new CoinSurfaceBrushStroke().Apply(rejected, default, Matrix, Bounds, Tool, .2f, .2f, .1f, .3f) && rejected.Revision == before,
                 "Side/Invalid은 B/광택 모두 거부", ref checks);
-            return $"S2-03a POLISH DATA PASS checks={checks}, maxAnalyticError={maxAnalytic:G7}, maxHzChannelError={maxHz:G7}, sampleCounts={a.LastSampleCount}/{b.LastSampleCount}. CPU APIs, not input/time tuning.";
+            return $"S2-03a POLISH DATA PASS checks={checks}, maxAnalyticError={maxAnalytic:G7}, maxHzChannelError={maxHz:G7}, maxHzRemovalError={maxHzRemoval:G7}, maxHzMeanPolishError={maxHzMeanPolish:G7}, sampleCounts={a.LastSampleCount}/{b.LastSampleCount}. CPU APIs, not input/time tuning.";
         }
 
         private static CoinSurfaceMaskData Simulate(int hz, int mode)
