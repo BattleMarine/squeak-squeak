@@ -15,6 +15,6 @@ MonoBehaviour:
   toolId: 1
   displayName: "\uC791\uC740 \uC194"
   brushRadius: 0.18
-  objectDirtRemovalPerSecond: 0.125
-  surfaceDirtRemovalPerSecond: 0.003
+  objectDirtRemovalPerSecond: 1.25
+  surfaceDirtRemovalPerSecond: 1.2
   polishGainPerSecond: 0

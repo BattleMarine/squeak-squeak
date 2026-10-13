@@ -15,6 +15,6 @@ MonoBehaviour:
   toolId: 2
   displayName: "\uAD11\uD0DD\uCC9C"
   brushRadius: 0.28
-  objectDirtRemovalPerSecond: 0.015
-  surfaceDirtRemovalPerSecond: 0.006
-  polishGainPerSecond: 0.012
+  objectDirtRemovalPerSecond: 0.15
+  surfaceDirtRemovalPerSecond: 2.4
+  polishGainPerSecond: 4.8

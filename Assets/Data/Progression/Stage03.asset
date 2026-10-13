@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1615f32586251cd46926454d699ed653, type: 3}
+  m_Name: Stage03
+  m_EditorClassIdentifier: Assembly-CSharp::SqueakSqueak.Progression.StageDefinition
+  id: stage-03
+  displayName: "\uCCAD\uC18C stage-03"
+  coin: {fileID: 11400000, guid: ba8c8d7b29ae2054181043468b510468, type: 2}
+  prerequisiteStageIds:
+  - stage-02
+  requiredOwnedToolIds:
+  - polishing-cloth
+  allowedToolIds:
+  - dry-cloth
+  - small-brush
+  - polishing-cloth
+  objectDirt:
+  - face: 1
+    uv: {x: 0.3, y: 0.3}
+    durability: 1
+    worldRadius: 0.12
+  - face: 1
+    uv: {x: 0.7, y: 0.3}
+    durability: 1
+    worldRadius: 0.12
+  - face: 1
+    uv: {x: 0.5, y: 0.5}
+    durability: 1
+    worldRadius: 0.12
+  - face: 1
+    uv: {x: 0.3, y: 0.7}
+    durability: 1
+    worldRadius: 0.12
+  - face: 1
+    uv: {x: 0.7, y: 0.7}
+    durability: 1
+    worldRadius: 0.12
+  dirtPattern: 0
+  initialSurfaceDirt: 1
+  initialPolish: 0
+  requiredA: 0.9
+  requiredB: 0.8
+  requiredPolish: 0.7
+  firstCompletionReward: 100
+  gradeASeconds: 180
+  gradeBSeconds: 300
