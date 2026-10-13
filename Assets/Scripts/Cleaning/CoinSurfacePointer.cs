@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace SqueakSqueak.Cleaning
 {
@@ -30,6 +31,12 @@ namespace SqueakSqueak.Cleaning
 
         [SerializeField]
         private SurfaceToolCursor toolCursor;
+
+        [SerializeField] private CleaningToolSelection toolSelection;
+        [SerializeField, Range(.0001f, .01f), Tooltip("청소를 적용할 누적 표면 이동의 최소 거리(월드 단위)입니다. 정지 시간은 누적하지 않습니다.")]
+        private float minimumRubDistance = CleaningRubMotion.DefaultMinimumDistance;
+        [SerializeField, Min(.01f), Tooltip("도구의 초당 속도가 그대로 적용되는 기준 문지르기 속도(월드 단위/초)입니다. 그보다 느리면 거리 비례로 줄이고 빠르면 이동 프레임 시간까지만 적용합니다.")]
+        private float referenceRubSpeed = CleaningRubMotion.DefaultReferenceSpeed;
 
         [SerializeField]
         private LayerMask raycastMask = Physics.DefaultRaycastLayers;
@@ -62,6 +69,15 @@ namespace SqueakSqueak.Cleaning
         private MeshCollider surfaceMeshCollider;
         private Mesh surfaceMesh;
         private Bounds surfaceLocalBounds;
+        private readonly CleaningRubMotion rubMotion = new();
+        private int rubFrame = -1;
+        private CleaningRubSample rubSample;
+        private RaycastHit rubHit;
+        private EventSystem uiEventSystem;
+        private PointerEventData uiPointer;
+        private readonly System.Collections.Generic.List<RaycastResult> uiHits = new();
+        private int uiFrame = -1;
+        private bool pointerOverUi;
 
         public CoinSurfaceContact CurrentSurfaceContact { get; private set; }
 
@@ -84,7 +100,22 @@ namespace SqueakSqueak.Cleaning
         /// </summary>
         public bool CanUseTool => HasSurfaceHit && !IsPointerOverUi;
 
-        public bool IsPointerOverUi => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        public bool IsPointerOverUi
+        {
+            get
+            {
+                var system = EventSystem.current;
+                if (system == null) return false;
+                if (uiFrame == Time.frameCount && system == uiEventSystem) return pointerOverUi;
+                if (system != uiEventSystem || uiPointer == null) { uiEventSystem = system; uiPointer = new PointerEventData(system); }
+                uiPointer.position = pointerPositionAction != null ? pointerPositionAction.ReadValue<Vector2>() : Vector2.zero;
+                uiHits.Clear(); system.RaycastAll(uiPointer,uiHits);
+                pointerOverUi = false;
+                foreach (var hit in uiHits) if (hit.module is GraphicRaycaster) { pointerOverUi = true; break; }
+                uiFrame = Time.frameCount;
+                return pointerOverUi;
+            }
+        }
 
         /// <summary>
         /// 현재 포인터 위치에서 도구 사용에 유효한 동전 표면 적중을 가져옵니다.
@@ -92,29 +123,46 @@ namespace SqueakSqueak.Cleaning
         /// </summary>
         public bool TryGetToolUseSurfaceHit(out RaycastHit surfaceHit)
         {
-            surfaceHit = default;
-            if (!isActiveAndEnabled || !Application.isFocused || useToolAction == null || !useToolAction.IsPressed() || IsRotating || rotateCoinAction.IsPressed() || IsPointerOverUi)
-            {
-                return false;
-            }
-
-            UpdateSurfaceFromScreenPosition(pointerPositionAction.ReadValue<Vector2>());
-            if (!CanUseTool)
-            {
-                return false;
-            }
-
-            surfaceHit = CurrentSurfaceHit;
-            return true;
+            var accepted = TryGetRubSample(out _, out surfaceHit);
+            return accepted;
         }
+
+        public bool TryGetRubSample(out CleaningRubSample sample, out RaycastHit surfaceHit)
+        {
+            if (rubFrame != Time.frameCount) EvaluateRubFrame();
+            sample = rubSample; surfaceHit = rubHit;
+            return sample.IsRubbing;
+        }
+
+        private void EvaluateRubFrame()
+        {
+            var valid = isActiveAndEnabled && Application.isFocused && useToolAction != null && useToolAction.IsPressed() &&
+                !IsRotating && !rotateCoinAction.IsPressed() && !IsPointerOverUi &&
+                !resetViewAction.WasPressedThisFrame() && zoomAction.ReadValue<Vector2>().sqrMagnitude <= Mathf.Epsilon;
+            if (valid) UpdateSurfaceFromScreenPosition(pointerPositionAction.ReadValue<Vector2>());
+            if (useToolAction != null && (useToolAction.WasPressedThisFrame() || useToolAction.WasReleasedThisFrame())) rubMotion.BreakContact();
+            rubSample = rubMotion.Sample(Time.frameCount, valid && HasCleanableContact, CurrentSurfaceContact,
+                SurfaceLocalToWorldMatrix, toolSelection != null ? toolSelection.CurrentTool : null, surfaceMeshCollider,
+                Time.deltaTime, minimumRubDistance, referenceRubSpeed);
+            rubHit = rubSample.IsRubbing ? CurrentSurfaceHit : default;
+            rubFrame = Time.frameCount;
+        }
+
+        private void BreakRubContact()
+        {
+            rubMotion.BreakContact(); rubSample = default; rubHit = default;
+            rubFrame = Time.frameCount; // 같은 프레임의 다른 소비자가 단절 전 샘플을 재사용하지 않습니다.
+        }
+
+        private void HandleToolSelected(CleaningToolDefinition _) => BreakRubContact();
 
         /// <summary>기존 LMB·UI·MMB 입력 판정을 통과한 앞/뒷면 접촉만 제공합니다.</summary>
         public bool TryGetToolUseContact(out CoinSurfaceContact contact)
         {
             contact = default;
-            if (!isActiveAndEnabled || !Application.isFocused || !TryGetToolUseSurfaceHit(out _) || !HasCleanableContact)
+            if (!isActiveAndEnabled || !Application.isFocused || !TryGetRubSample(out var sample,out _))
                 return false;
-            contact = CurrentSurfaceContact;
+            contact = sample.End;
             return true;
         }
 
@@ -171,11 +219,14 @@ namespace SqueakSqueak.Cleaning
         private void OnEnable()
         {
             cleaningMap?.Enable();
+            if (toolSelection != null) toolSelection.ToolSelected += HandleToolSelected;
+            BreakRubContact();
         }
 
         private void OnDisable()
         {
             cleaningMap?.Disable();
+            if (toolSelection != null) toolSelection.ToolSelected -= HandleToolSelected;
             IsRotating = false;
             ClearSurfaceHit();
         }
@@ -274,6 +325,8 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
+            BreakRubContact();
+
             gameplayCamera.orthographicSize = Mathf.Clamp(
                 gameplayCamera.orthographicSize - scrollDelta * zoomSensitivity,
                 minimumZoom,
@@ -324,7 +377,7 @@ namespace SqueakSqueak.Cleaning
 
         private bool TryResolveDependencies()
         {
-            if (inputActions == null || gameplayCamera == null || coinCollider == null || coinTransform == null || toolCursor == null)
+            if (inputActions == null || gameplayCamera == null || coinCollider == null || coinTransform == null || toolCursor == null || toolSelection == null)
             {
                 Debug.LogError("CoinSurfacePointer requires Input Actions, Camera, Coin Collider, Coin Transform, and Tool Cursor references.", this);
                 return false;
@@ -366,6 +419,8 @@ namespace SqueakSqueak.Cleaning
         private void OnValidate()
         {
             maximumZoom = Mathf.Max(minimumZoom, maximumZoom);
+            minimumRubDistance = Mathf.Clamp(minimumRubDistance, .0001f, .01f);
+            referenceRubSpeed = Mathf.Max(.01f, referenceRubSpeed);
         }
 
         private bool TryFindCoinSurfaceHit(Vector2 screenPosition, out RaycastHit surfaceHit)
@@ -408,6 +463,7 @@ namespace SqueakSqueak.Cleaning
 
         private void ClearSurfaceHit()
         {
+            BreakRubContact();
             HasSurfaceHit = false;
             CurrentSurfaceHit = default;
             CurrentSurfaceContact = default;

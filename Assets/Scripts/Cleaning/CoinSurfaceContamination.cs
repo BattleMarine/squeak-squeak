@@ -60,6 +60,7 @@ namespace SqueakSqueak.Cleaning
         private Color32[] maskUploadPixels;
         private long uploadedMaskRevision = -1;
         private readonly CoinSurfaceBrushStroke surfaceStroke = new();
+        private long appliedRubFrame = -1;
         public bool ProcessingAllowed { get; private set; } = true;
 
         public bool HasSurfaceContactHistory => surfaceStroke.HasPreviousContact;
@@ -126,12 +127,32 @@ namespace SqueakSqueak.Cleaning
         /// <summary>위치 없는 호출도 기존 LMB/UI/MMB/포커스 gate를 거칩니다. 전체 B 감소는 하지 않습니다.</summary>
         public bool ApplyCleaning(float deltaTime)
         {
-            if (!isActiveAndEnabled || SurfaceMask == null || !surfacePointer.TryGetToolUseContact(out var contact))
+            if (!float.IsFinite(deltaTime) || deltaTime <= 0 || !isActiveAndEnabled || SurfaceMask == null || !surfacePointer.TryGetRubSample(out var sample, out _))
             {
                 BreakSurfaceContact();
                 return false;
             }
-            return ApplySurfaceContact(contact, deltaTime);
+            return ApplyRubSample(sample);
+        }
+
+        private bool ApplyRubSample(CleaningRubSample sample)
+        {
+            if (!ProcessingAllowed || !sample.IsRubbing || sample.FrameId == appliedRubFrame || toolSelection.CurrentTool == null) return false;
+            appliedRubFrame = sample.FrameId;
+            var tool = toolSelection.CurrentTool;
+            var dirtBefore = SurfaceMask.CurrentDirtSum;
+            var polishBefore = SurfaceMask.CurrentPolishSum;
+            var changed = surfaceStroke.ApplyApprovedSweep(SurfaceMask, sample.Start, sample.End,
+                surfacePointer.SurfaceLocalToWorldMatrix, surfacePointer.SurfaceLocalBounds, tool, tool.BrushRadius,
+                tool.SurfaceDirtRemovalPerSecond, sample.EffectiveSeconds, tool.PolishGainPerSecond);
+            if (changed)
+            {
+                UploadSurfaceMasks(); ApplyVisuals();
+                SurfaceContactChanged?.Invoke(new SurfaceCleaningChange(sample.End, tool,
+                    SurfaceMask.CurrentDirtSum != dirtBefore, SurfaceMask.CurrentPolishSum != polishBefore));
+                CleaningApplied?.Invoke();
+            }
+            return changed;
         }
 
         private bool ApplySurfaceContact(CoinSurfaceContact contact, float deltaTime)

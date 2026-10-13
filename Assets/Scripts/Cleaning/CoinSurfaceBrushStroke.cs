@@ -17,6 +17,8 @@ namespace SqueakSqueak.Cleaning
         private float previousRate;
         private float previousPolishRate;
         private long previousRevision;
+        private long motionFrame;
+        private readonly CleaningRubMotion rubMotion = new();
 
         public bool HasPreviousContact { get; private set; }
         public bool LastFrameAccepted { get; private set; }
@@ -36,6 +38,7 @@ namespace SqueakSqueak.Cleaning
             LastSampleCount = 0;
             previousData = null;
             previousTool = null;
+            rubMotion.BreakContact();
         }
 
         public bool Apply(CoinSurfaceMaskData data, CoinSurfaceContact contact, Matrix4x4 matrix,
@@ -56,8 +59,33 @@ namespace SqueakSqueak.Cleaning
                 ReferenceEquals(toolKey, previousTool) && previousContact.Face == current.Face &&
                 previousMatrix.Equals(matrix) && previousBounds.Equals(bounds) && previousRadius == worldRadius &&
                 previousRate == removalPerSecond && previousPolishRate == polishPerSecond && previousRevision == data.Revision;
-            var start = continuous ? previousContact.LocalPosition : current.LocalPosition;
+            if (!continuous) rubMotion.BreakContact();
+            var sample = rubMotion.Sample(++motionFrame, true, current, matrix, toolKey, data, deltaTime);
+            if (!sample.IsRubbing)
+            {
+                Capture(data, current, matrix, bounds, toolKey, worldRadius, removalPerSecond, polishPerSecond);
+                return false;
+            }
+            return ApplyApprovedSweep(data, sample.Start, sample.End, matrix, bounds, toolKey, worldRadius,
+                removalPerSecond, sample.EffectiveSeconds, polishPerSecond);
+        }
+
+        /// <summary>공통 프레임 판정이 승인한 이동 구간/예산만 적용합니다. 정지점·최초 클릭은 승인하지 않습니다.</summary>
+        public bool ApplyApprovedSweep(CoinSurfaceMaskData data, CoinSurfaceContact from, CoinSurfaceContact to,
+            Matrix4x4 matrix, Bounds bounds, object toolKey, float worldRadius, float removalPerSecond,
+            float effectiveSeconds, float polishPerSecond = 0f)
+        {
+            LastFrameAccepted = false; LastSampleCount = 0;
+            if (data == null || toolKey == null || !from.IsCleanable || !to.IsCleanable || from.Face != to.Face ||
+                !Finite(effectiveSeconds) || effectiveSeconds <= 0 || !Finite(worldRadius) || worldRadius <= 0 ||
+                !Finite(removalPerSecond) || removalPerSecond < 0 || !Finite(polishPerSecond) || polishPerSecond < 0 ||
+                !CoinSurfaceMapper.TryMapPoint(matrix, bounds, from.WorldPosition, from.WorldNormal, out var startContact) ||
+                !CoinSurfaceMapper.TryMapPoint(matrix, bounds, to.WorldPosition, to.WorldNormal, out var current) ||
+                startContact.Face != from.Face || current.Face != to.Face)
+            { BreakContact(); return false; }
+            var start = startContact.LocalPosition;
             var distance = matrix.MultiplyVector(current.LocalPosition - start).magnitude;
+            if (!Finite(distance) || distance <= 0) return false;
             var requested = Math.Max(1d, Math.Ceiling(distance / ((double)worldRadius * sampleSpacingInRadii)));
             if (double.IsNaN(requested) || double.IsInfinity(requested) || requested > MaximumSamples)
             {
@@ -66,8 +94,8 @@ namespace SqueakSqueak.Cleaning
             }
             var samples = (int)requested;
             // 전체 프레임 예산을 표본마다 나눕니다. 같은 texel을 여러 번 지나도 예산이 늘지 않습니다.
-            var amountPerSample = (double)removalPerSecond * deltaTime / samples;
-            var polishPerSample = (double)polishPerSecond * deltaTime / samples;
+            var amountPerSample = (double)removalPerSecond * effectiveSeconds / samples;
+            var polishPerSample = (double)polishPerSecond * effectiveSeconds / samples;
             var changed = false;
             if (amountPerSample > 0d || polishPerSample > 0d)
                 for (var sample = 0; sample < samples; sample++)
@@ -75,6 +103,15 @@ namespace SqueakSqueak.Cleaning
                     var center = Vector3.Lerp(start, current.LocalPosition, (sample + .5f) / samples);
                     changed |= ApplyDisk(data, current.Face, matrix, bounds, center, worldRadius, amountPerSample, polishPerSample);
                 }
+            Capture(data, current, matrix, bounds, toolKey, worldRadius, removalPerSecond, polishPerSecond);
+            LastFrameAccepted = true;
+            LastSampleCount = samples;
+            return changed;
+        }
+
+        private void Capture(CoinSurfaceMaskData data, CoinSurfaceContact current, Matrix4x4 matrix, Bounds bounds,
+            object toolKey, float worldRadius, float removalPerSecond, float polishPerSecond)
+        {
             previousData = data;
             previousTool = toolKey;
             previousContact = current;
@@ -85,9 +122,6 @@ namespace SqueakSqueak.Cleaning
             previousPolishRate = polishPerSecond;
             previousRevision = data.Revision;
             HasPreviousContact = true;
-            LastFrameAccepted = true;
-            LastSampleCount = samples;
-            return changed;
         }
 
         private static bool ApplyDisk(CoinSurfaceMaskData data, CoinSurfaceFace face, Matrix4x4 matrix,

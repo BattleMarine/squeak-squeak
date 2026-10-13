@@ -18,6 +18,7 @@ namespace SqueakSqueak.Cleaning
         [SerializeField, Min(0f)]
         [Tooltip("카메라에서 본 Coin 표면과 오염 위치 사이에 허용할 거리입니다.")]
         private float visibleSurfaceTolerance = 0.08f;
+        private long appliedRubFrame = -1;
 
         public int InitialDirtCount { get; private set; }
 
@@ -60,12 +61,12 @@ namespace SqueakSqueak.Cleaning
 
         private void Update()
         {
-            if (!surfacePointer.TryGetToolUseSurfaceHit(out var surfaceHit))
+            if (!surfacePointer.TryGetRubSample(out var sample, out var surfaceHit))
             {
                 return;
             }
 
-            ApplyCleaningAtSurfaceHit(surfaceHit, Time.deltaTime);
+            ApplyRubSample(sample, surfaceHit);
         }
 
         /// <summary>
@@ -79,6 +80,27 @@ namespace SqueakSqueak.Cleaning
                 return 0;
             }
 
+            var affectedCount = ApplyAtPoint(surfaceHit.point, deltaTime);
+            NotifyCleaning(surfaceHit, affectedCount);
+            return affectedCount;
+        }
+
+        private void ApplyRubSample(CleaningRubSample sample, RaycastHit surfaceHit)
+        {
+            if (!ProcessingAllowed || !sample.IsRubbing || sample.FrameId == appliedRubFrame || toolSelection.CurrentTool == null) return;
+            appliedRubFrame = sample.FrameId;
+            var radius = toolSelection.CurrentTool.BrushRadius;
+            var distance = Vector3.Distance(sample.Start.WorldPosition,sample.End.WorldPosition);
+            var count = Mathf.Max(1, Mathf.CeilToInt(distance / (radius * .25f)));
+            if (count > CoinSurfaceBrushStroke.MaximumSamples) return;
+            var affected = 0;
+            for (var i = 0; i < count; i++)
+                affected += ApplyAtPoint(Vector3.Lerp(sample.Start.WorldPosition, sample.End.WorldPosition, (i+.5f)/count),sample.EffectiveSeconds/count);
+            NotifyCleaning(surfaceHit,affected);
+        }
+
+        private int ApplyAtPoint(Vector3 point, float deltaTime)
+        {
             var tool = toolSelection.CurrentTool;
             if (tool == null || tool.ObjectDirtRemovalPerSecond <= 0f)
             {
@@ -96,7 +118,7 @@ namespace SqueakSqueak.Cleaning
                     continue;
                 }
 
-                if ((dirt.transform.position - surfaceHit.point).sqrMagnitude > brushRadiusSquared ||
+                if ((dirt.transform.position - point).sqrMagnitude > brushRadiusSquared ||
                     !surfacePointer.IsWorldPointVisibleOnCoinSurface(dirt.transform.position, visibleSurfaceTolerance))
                 {
                     continue;
@@ -108,13 +130,17 @@ namespace SqueakSqueak.Cleaning
                 }
             }
 
+            return affectedCount;
+        }
+
+        private void NotifyCleaning(RaycastHit surfaceHit, int affectedCount)
+        {
             if (affectedCount > 0)
             {
                 ContactCleaningApplied?.Invoke(surfaceHit);
                 CleaningApplied?.Invoke();
             }
 
-            return affectedCount;
         }
 
         public void ResetAllDirt()

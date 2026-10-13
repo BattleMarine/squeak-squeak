@@ -46,7 +46,14 @@ namespace SqueakSqueak.EditorValidation
                 var data = new CoinSurfaceMaskData(65, dirt, CoinSurfaceDirtPattern.Uniform);
                 var stroke = new CoinSurfaceBrushStroke();
                 var point = Contact(Matrix, face, new Vector2(.5f, .5f));
-                Check(stroke.Apply(data, point, Matrix, Bounds, Tool, .2f, .2f, 1f, .3f), "지역 Hold 변화", ref checks);
+                var heldRevision = data.Revision;
+                Check(!stroke.Apply(data, point, Matrix, Bounds, Tool, .2f, .2f, 1f, .3f) &&
+                    !stroke.Apply(data, point, Matrix, Bounds, Tool, .2f, .2f, 10f, .3f) && data.Revision == heldRevision,
+                    "최초/정지 Hold 광택0", ref checks);
+                var from = Contact(Matrix, face, new Vector2(.499999f,.5f));
+                var to = Contact(Matrix, face, new Vector2(.500001f,.5f));
+                Check(stroke.ApplyApprovedSweep(data,from,to,Matrix,Bounds,Tool,.2f,.2f,1f,.3f),
+                    "승인된 미소 구간의 지역 커널 적분",ref checks);
                 var valid = true; var sum = 0d;
                 for (var j = 0; j < 65; j++)
                 for (var i = 0; i < 65; i++)
@@ -63,7 +70,7 @@ namespace SqueakSqueak.EditorValidation
                 }
                 Check(valid && maxAnalytic < 2e-6 && Math.Abs(data.MeanPolish - sum / (2d * data.ValidTexelCount)) < 2e-7,
                     "해당 텍셀 B 시간적분 효율·양면 면적 평균·반대면 보존", ref checks);
-                stroke.Apply(data, point, Matrix, Bounds, Tool, .2f, .2f, 10000f, .3f);
+                stroke.ApplyApprovedSweep(data, from, to, Matrix, Bounds, Tool, .2f, .2f, 10000f, .3f);
                 Check(data.MeanPolish < .03f && data.GetPolish(face, 32 * 65 + 32) == 1f,
                     "한 점 포화는 전체 광택 완료 아님", ref checks);
             }
@@ -114,7 +121,7 @@ namespace SqueakSqueak.EditorValidation
                     case "Invalid": stroke.Apply(data, right, Matrix, Bounds, Tool, .18f, 0f, float.NaN, .3f); break;
                 }
                 stroke.Apply(data, Contact(matrix, face, right.Uv), matrix, Bounds, key, .18f, 0f, .1f, rate);
-                Check(stroke.LastSampleCount == 1 && data.GetPolish(face, 64 * 128 + 64) == 0f,
+                Check(stroke.LastSampleCount == 0 && data.GetPolish(face, 64 * 128 + 64) == 0f,
                     reason + " 후 광택 연결선 없음", ref checks);
             }
             foreach (var invalid in new[] { -1f, float.NaN, float.PositiveInfinity })

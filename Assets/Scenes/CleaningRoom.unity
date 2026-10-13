@@ -3213,6 +3213,9 @@ MonoBehaviour:
   coinCollider: {fileID: 62827139}
   coinTransform: {fileID: 2017727764}
   toolCursor: {fileID: 170826455}
+  toolSelection: {fileID: 1040586786}
+  minimumRubDistance: 0.001
+  referenceRubSpeed: 0.6
   raycastMask:
     serializedVersion: 2
     m_Bits: 4294967291
@@ -9406,9 +9409,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1.15
-  m_Text: "Mouse Move \xB7 \uB3C4\uAD6C \uC774\uB3D9\nLMB Hold/Drag \xB7 \uB204\uB974\uBA70
-    \uB2E6\uAE30\nMMB Drag \xB7 \uB3D9\uC804 \uB3CC\uB9AC\uAE30\nWheel \xB7 \uD655\uB300
-    / \uCD95\uC18C\nF \xB7 \uC790\uC138 / \uC90C \uCD08\uAE30\uD654"
+  m_Text: "Mouse Move \xB7 \uB3C4\uAD6C \uC774\uB3D9\nLMB Drag \xB7 \uBB38\uC9C0\uB974\uAE30\nMMB
+    Drag \xB7 \uB3D9\uC804 \uB3CC\uB9AC\uAE30\nWheel \xB7 \uD655\uB300 / \uCD95\uC18C\nF
+    \xB7 \uC790\uC138 / \uC90C \uCD08\uAE30\uD654"
 --- !u!222 &1546666481
 CanvasRenderer:
   m_ObjectHideFlags: 0

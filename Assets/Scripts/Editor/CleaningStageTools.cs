@@ -55,6 +55,10 @@ namespace SqueakSqueak.EditorValidation
             var group = Undo.GetCurrentGroup();
             Undo.SetCurrentGroupName("Connect Stage Runtime");
             var owner = Undo.AddComponent<CleaningStageController>(completion.gameObject);
+            Undo.RecordObject(pointer, "Connect Rub Tool Selection");
+            var pointerSelection = pointerSo.FindProperty("toolSelection");
+            if (pointerSelection != null)
+            { pointerSelection.objectReferenceValue = selection; pointerSo.ApplyModifiedProperties(); }
             var so = new SerializedObject(owner);
             void Ref(string name, UnityEngine.Object value) => so.FindProperty(name).objectReferenceValue = value;
             Ref("catalog", catalog); Ref("completion", completion); Ref("progress", progress); Ref("pointer", pointer);

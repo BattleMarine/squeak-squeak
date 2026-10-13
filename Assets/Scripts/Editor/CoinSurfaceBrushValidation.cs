@@ -33,7 +33,14 @@ namespace SqueakSqueak.EditorValidation
                 var data = Uniform();
                 var stroke = new CoinSurfaceBrushStroke();
                 var point = Contact(matrix, face, new Vector2(64.5f / 128f, 64.5f / 128f));
-                Check(stroke.Apply(data, point, matrix, Bounds, Tool, radius, .4f, .5f), "정지 Hold 변화", ref checks);
+                var revision = data.Revision;
+                Check(!stroke.Apply(data, point, matrix, Bounds, Tool, radius, .4f, .5f) &&
+                    !stroke.Apply(data, point, matrix, Bounds, Tool, radius, .4f, 10f) && data.Revision == revision,
+                    "최초 클릭/정지 Hold 변화0", ref checks);
+                var from = Contact(matrix, face, point.Uv - new Vector2(.000001f,0));
+                var to = Contact(matrix, face, point.Uv + new Vector2(.000001f,0));
+                Check(stroke.ApplyApprovedSweep(data, from, to, matrix, Bounds, Tool, radius, .4f, .5f),
+                    "승인된 미소 구간의 커널 적분(입력 예산 검사는 별도)", ref checks);
                 var valid = true;
                 var opposite = face == CoinSurfaceFace.Front ? CoinSurfaceFace.Back : CoinSurfaceFace.Front;
                 var sx = matrix.MultiplyVector(Vector3.right).magnitude;
@@ -104,7 +111,7 @@ namespace SqueakSqueak.EditorValidation
                 }
                 var point = Contact(matrix, face, right.Uv);
                 stroke.Apply(data, point, matrix, Bounds, key, radius, rate, .1f);
-                Check(stroke.LastSampleCount == 1 && data.GetDirt(face, 64 * 128 + 64) == 1f,
+                Check(stroke.LastSampleCount == 0 && data.GetDirt(face, 64 * 128 + 64) == 1f,
                     interruption + " 후 재진입 연결선 없음", ref checks);
             }
             foreach (var invalid in new[] { 0f, -1f, float.NaN, float.PositiveInfinity })

@@ -7,15 +7,15 @@
 
 2026-10-13 **S3-02 단계 실행까지 구현·검증**했다. 동전 외형2종·스테이지3개·카탈로그를 기반으로 초기화·재도전·포기·이전 판 알림 차단을 연결했다. CleaningRoom은 stage-01·마른 천으로 시작하며 단계 왕복은 개발 API로 검사했다. Step 0은 완료됐고, Step 1/2의 기본 조작·포커스·완료/재시작2판은 [사용자 재검사](Docs/Step2-수동테스트_2610130829.md)로 확인했다. 실제 완료 시간·소리 세부 동작·Player 성능·비개발자 체험은 남아 있어 Step 2 전체 완료로 표시하지 않는다.
 
-마른 천의 만능화와 광택천 사용 후 덜 빛나는 표현은 별도 후속 과제다. S3-01a에서 사용자 선호 A/B/광택 속도 추가10배를 도구3종에 저장하고 Hold/Drag·30/60/120Hz 수치 회귀를 확인했다. 반경과 사용자 Dirty 씬은 보존했다. 기준 빌드는 `Builds/Windows/Step2-20261012-manual-fix/`이며 추가10배 반영 빌드로 간주하지 않는다.
+마른 천의 만능화와 광택천 사용 후 덜 빛나는 표현은 별도 후속 과제다. S3-01a에서 사용자 선호 A/B/광택 속도 추가10배를 도구3종에 저장하고 Hold/Drag·30/60/120Hz 수치 회귀를 확인했다. 반경과 사용자 Dirty 씬은 보존했다. 문지르기 입력으로 전환해 정지/클릭만으로는 청소되지 않는다. 새 Windows 검증 빌드는 `Builds/Windows/Step3-20261013-stage-rub/`이며 물리 입력·Player 실행/품질은 수동 확인 대기다.
 
-구현 인계: [Step 3 구현 지시서](Docs/Step3-구현지시서.md) · [Step 3 체크리스트](Docs/AI/Step3ImplementationChecklist.md). 작은 콘텐츠로 단계 진행·보상·구매/해금·저장 재개를 먼저 연결한다. 현재 승인 범위는 S3-02 구현·검토·커밋까지이며 S3-03 이후는 미착수다. Step 2의 상세 구현/검증 이력은 [Step 2 체크리스트](Docs/AI/Step2ImplementationChecklist.md)에 보존한다.
+구현 인계: [Step 3 구현 지시서](Docs/Step3-구현지시서.md) · [Step 3 체크리스트](Docs/AI/Step3ImplementationChecklist.md). 작은 콘텐츠로 단계 진행·보상·구매/해금·저장 재개를 먼저 연결한다. 현재 승인 범위는 S3-02와 문지르기 입력 수정의 검토·커밋까지이며 S3-03 이후는 미착수다. Step 2의 상세 구현/검증 이력은 [Step 2 체크리스트](Docs/AI/Step2ImplementationChecklist.md)에 보존한다.
 
 ### Step 0 완료 기록
 
 - [x] 렌더링·입력 설정과 에디터 상태 확인, 필요한 씬·설정·임시 머티리얼 폴더 구성
 - [x] `CleaningRoom` 생성: 탑뷰 Orthographic Camera, Light, Workbench, 임시 Coin 배치·저장·Play Mode 검증
-- [x] 입력 기준 확정: Mouse Move 도구 이동 / LMB Hold·Drag 도구 사용 / MMB Drag 동전 자유 회전 / Wheel 확대·축소 / F 동전 위치·회전·Zoom 초기화. 실제 입력 연결은 Step 1.
+- [x] 입력 기준 확정: Mouse Move 도구 이동 / LMB Drag 누른 채 문지르기(정지 청소 없음) / MMB Drag 동전 자유 회전 / Wheel 확대·축소 / F 동전 위치·회전·Zoom 초기화. 실제 입력 연결은 Step 1.
 - [x] 초기 시작 씬 `CleaningRoom`, 기본 1280×720 창 모드·크기 조절 불가, 제품명 `Squeak Squeak` 설정·저장 확인
 - [x] Windows x64 빌드·재빌드 성공 — 오류 0, 기존 패키지 경고 485. 실행 창 제목·1280×720 크기·크기 조절 불가·정상 종료 확인. 육안·수동 조작은 미검증.
 - [x] 다른 PC에서 기존 `Step0-Configured` 실행·동전 표시 확인 — i7-12700K / RTX 3070 / Windows 11 Education, 2026-09-15 사용자 시험
