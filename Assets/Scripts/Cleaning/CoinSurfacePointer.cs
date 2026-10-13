@@ -38,7 +38,8 @@ namespace SqueakSqueak.Cleaning
         private float rotationSensitivity = 0.2f;
 
         [SerializeField, Min(0f)]
-        private float zoomSensitivity = 0.0025f;
+        [Tooltip("정규화된 휠 1단위당 Orthographic Size 변화량입니다. Input System의 UniformAcrossAllPlatforms 기준입니다.")]
+        private float zoomSensitivity = 0.12f;
 
         [SerializeField, Min(0.01f)]
         private float minimumZoom = 1.6f;

@@ -17,6 +17,8 @@ namespace SqueakSqueak.Cleaning
         private CoinSurfaceContamination surfaceContamination;
 
         private bool isTimingStopped;
+        private double previousTimingTimestamp;
+        private bool wasTimingFocused;
 
         public bool HasStarted { get; private set; }
 
@@ -58,6 +60,8 @@ namespace SqueakSqueak.Cleaning
 
         private void OnEnable()
         {
+            previousTimingTimestamp = Time.realtimeSinceStartupAsDouble;
+            wasTimingFocused = Application.isFocused;
             objectDirtCleaner.CleaningApplied += HandleCleaningApplied;
             surfaceContamination.CleaningApplied += HandleCleaningApplied;
         }
@@ -77,15 +81,27 @@ namespace SqueakSqueak.Cleaning
 
         private void Update()
         {
-            if (isTimingStopped)
-            {
-                return;
-            }
+            AdvanceTiming(Time.realtimeSinceStartupAsDouble, Application.isFocused);
+        }
 
-            if (HasStarted && Application.isFocused)
+        private void OnApplicationFocus(bool focused)
+        {
+            // 마지막 프레임 이후의 기존 포커스 구간까지만 합산합니다.
+            // background=false여서 Update가 멈췄어도 복귀한 프레임의 큰 dt를 더하지 않습니다.
+            AdvanceTiming(Time.realtimeSinceStartupAsDouble, wasTimingFocused);
+            wasTimingFocused = focused;
+        }
+
+        private void AdvanceTiming(double now, bool focused)
+        {
+            var interval = Math.Max(0d, now - previousTimingTimestamp);
+            var shouldAccumulate = HasStarted && !isTimingStopped && wasTimingFocused && focused;
+            previousTimingTimestamp = now;
+            wasTimingFocused = focused;
+            if (shouldAccumulate)
             {
                 var previousWholeSeconds = Mathf.FloorToInt(ElapsedSeconds);
-                ElapsedSeconds += Time.unscaledDeltaTime;
+                ElapsedSeconds += (float)interval;
                 if (Mathf.FloorToInt(ElapsedSeconds) != previousWholeSeconds)
                 {
                     ProgressChanged?.Invoke();
@@ -110,6 +126,8 @@ namespace SqueakSqueak.Cleaning
             HasStarted = false;
             ElapsedSeconds = 0f;
             isTimingStopped = false;
+            previousTimingTimestamp = Time.realtimeSinceStartupAsDouble;
+            wasTimingFocused = Application.isFocused;
             ProgressChanged?.Invoke();
         }
 
@@ -120,7 +138,12 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
-            HasStarted = true;
+            if (!HasStarted)
+            {
+                previousTimingTimestamp = Time.realtimeSinceStartupAsDouble;
+                wasTimingFocused = Application.isFocused;
+                HasStarted = true;
+            }
             ProgressChanged?.Invoke();
         }
 

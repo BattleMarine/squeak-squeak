@@ -3216,7 +3216,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967291
   rotationSensitivity: 0.2
-  zoomSensitivity: 0.0025
+  zoomSensitivity: 0.12
   minimumZoom: 1.6
   maximumZoom: 3.2
 --- !u!4 &1040586785
