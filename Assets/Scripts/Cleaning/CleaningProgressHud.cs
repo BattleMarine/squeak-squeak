@@ -129,9 +129,18 @@ namespace SqueakSqueak.Cleaning
                 face == CoinSurfaceFace.Back ? "뒷면(물결) · 앞면도 함께 닦아주세요" :
                 face == CoinSurfaceFace.Side ? "옆면은 닦지 않아요 · MMB로 돌려주세요" : "태양 앞면 · 물결 뒷면, 두 면 모두 닦기");
             SetTextIfChanged(nextActionText, completion.IsCompleted ? "완료! 결과에서 새 청소를 시작하세요" :
-                progressTracker.ObjectDirtRemovalRatio < completion.RequiredObjectDirtRemovalRatio ? "다음: 작은 솔로 큰 먼지를 털어내세요" :
+                progressTracker.ObjectDirtRemovalRatio < completion.RequiredObjectDirtRemovalRatio ? ObjectDirtInstruction() :
                 progressTracker.SurfaceDirtRemovalRatio < completion.RequiredSurfaceDirtRemovalRatio ? "다음: 마른 천으로 앞뒤 얼룩을 닦으세요" :
                 progressTracker.Polish < completion.RequiredPolish ? "다음: 광택천으로 앞뒤를 마무리하세요" : "마무리 확인 중");
+        }
+
+        private string ObjectDirtInstruction()
+        {
+            // 초기 stage-01에서는 작은 솔을 아직 소유하지 않습니다. 실제 허용 목록과 안내를 맞춥니다.
+            for (var i = 0; i < toolSelection.AvailableToolCount; i++)
+                if (toolSelection.GetToolAt(i).ToolId == CleaningToolId.SmallBrush)
+                    return "다음: 작은 솔로 큰 먼지를 털어내세요";
+            return "다음: 마른 천으로 큰 먼지를 닦아내세요";
         }
 
         private static void SetTextIfChanged(Text label, string value) { if (label.text != value) label.text = value; }

@@ -93,7 +93,7 @@ namespace SqueakSqueak.Cleaning
         public bool TryGetToolUseSurfaceHit(out RaycastHit surfaceHit)
         {
             surfaceHit = default;
-            if (useToolAction == null || !useToolAction.IsPressed() || IsRotating || rotateCoinAction.IsPressed() || IsPointerOverUi)
+            if (!isActiveAndEnabled || !Application.isFocused || useToolAction == null || !useToolAction.IsPressed() || IsRotating || rotateCoinAction.IsPressed() || IsPointerOverUi)
             {
                 return false;
             }
@@ -290,6 +290,13 @@ namespace SqueakSqueak.Cleaning
             gameplayCamera.orthographicSize = initialOrthographicSize;
             IsRotating = false;
             ClearSurfaceHit();
+        }
+
+        /// <summary>같은 동전 인스턴스의 Mesh/Collider 교체 후 접촉 캐시를 명시적으로 갱신합니다.</summary>
+        public bool RefreshSurfaceGeometry()
+        {
+            ClearSurfaceHit();
+            return TryResolveDependencies();
         }
 
         private void UpdateSurfaceFromScreenPosition(Vector2 screenPosition)

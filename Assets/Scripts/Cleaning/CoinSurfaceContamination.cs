@@ -60,6 +60,7 @@ namespace SqueakSqueak.Cleaning
         private Color32[] maskUploadPixels;
         private long uploadedMaskRevision = -1;
         private readonly CoinSurfaceBrushStroke surfaceStroke = new();
+        public bool ProcessingAllowed { get; private set; } = true;
 
         public bool HasSurfaceContactHistory => surfaceStroke.HasPreviousContact;
 
@@ -135,6 +136,7 @@ namespace SqueakSqueak.Cleaning
 
         private bool ApplySurfaceContact(CoinSurfaceContact contact, float deltaTime)
         {
+            if (!ProcessingAllowed) { BreakSurfaceContact(); return false; }
             var tool = toolSelection.CurrentTool;
             if (tool == null)
             {
@@ -170,6 +172,27 @@ namespace SqueakSqueak.Cleaning
             }
             ApplyVisuals();
             SurfaceReset?.Invoke();
+        }
+
+        public void SetProcessingAllowed(bool allowed)
+        {
+            ProcessingAllowed = allowed;
+            if (!allowed) BreakSurfaceContact();
+        }
+
+        /// <summary>입력 차단 중 정적 단계 설정만 적용합니다. ResetSurface에서 양면을 새 판으로 만듭니다.</summary>
+        public void ConfigureStage(float dirt, float polish, CoinSurfaceDirtPattern pattern, Color color)
+        {
+            if (ProcessingAllowed) throw new InvalidOperationException("Block processing before configuring a stage.");
+            if (!float.IsFinite(dirt) || !float.IsFinite(polish) || dirt < 0 || dirt > 1 || polish < 0 || polish > 1 ||
+                !Enum.IsDefined(typeof(CoinSurfaceDirtPattern), pattern)) throw new ArgumentException("Invalid surface settings.");
+            if (!TryResolveDependencies()) throw new InvalidOperationException("Unsupported coin surface.");
+            initialSurfaceDirt = dirt;
+            initialPolish = polish;
+            surfaceDirtPattern = pattern;
+            propertyBlock ??= new MaterialPropertyBlock();
+            CaptureCleanMaterialValues();
+            cleanBaseColor = color;
         }
 
         private void EnsureSurfaceMasks()

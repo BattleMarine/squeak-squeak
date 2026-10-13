@@ -18,6 +18,18 @@ namespace SqueakSqueak.Cleaning
 
         public int AvailableToolCount => availableTools.Length;
 
+        /// <summary>소유∩단계 허용 목록의 사본만 선택/실제 사용 경로에 노출합니다.</summary>
+        public void ConfigureAvailableTools(CleaningToolDefinition[] tools)
+        {
+            if (tools == null || tools.Length == 0) throw new ArgumentException("At least one allowed tool is required.", nameof(tools));
+            var unique = new System.Collections.Generic.HashSet<CleaningToolDefinition>();
+            foreach (var tool in tools)
+                if (tool == null || !unique.Add(tool)) throw new ArgumentException("Missing or duplicate tool.", nameof(tools));
+            availableTools = (CleaningToolDefinition[])tools.Clone();
+            defaultTool = availableTools[0];
+            ResetToDefaultTool();
+        }
+
         private void Awake()
         {
             if (ResetToDefaultTool())

@@ -17,6 +17,7 @@ namespace SqueakSqueak.Cleaning
         private CoinSurfaceContamination surfaceContamination;
 
         private bool isTimingStopped;
+        private bool isTimingPaused;
         private double previousTimingTimestamp;
         private bool wasTimingFocused;
 
@@ -39,6 +40,7 @@ namespace SqueakSqueak.Cleaning
         public float Cleanliness => Mathf.Clamp01((ObjectDirtRemovalRatio + SurfaceDirtRemovalRatio) * 0.5f);
 
         public bool IsTimingStopped => isTimingStopped;
+        public bool IsTimingPaused => isTimingPaused;
 
         /// <summary>
         /// HUD가 청소 적용 직후의 수치를 즉시 표시할 수 있도록 알립니다.
@@ -95,7 +97,7 @@ namespace SqueakSqueak.Cleaning
         private void AdvanceTiming(double now, bool focused)
         {
             var interval = Math.Max(0d, now - previousTimingTimestamp);
-            var shouldAccumulate = HasStarted && !isTimingStopped && wasTimingFocused && focused;
+            var shouldAccumulate = HasStarted && !isTimingStopped && !isTimingPaused && wasTimingFocused && focused;
             previousTimingTimestamp = now;
             wasTimingFocused = focused;
             if (shouldAccumulate)
@@ -117,6 +119,16 @@ namespace SqueakSqueak.Cleaning
             isTimingStopped = true;
         }
 
+        /// <summary>선택/포기 확인 시간은 제외하며 취소 후에도 기존 경과 시간을 보존합니다.</summary>
+        public void SetTimingPaused(bool paused)
+        {
+            if (isTimingPaused == paused) return;
+            AdvanceTiming(Time.realtimeSinceStartupAsDouble, Application.isFocused);
+            isTimingPaused = paused;
+            previousTimingTimestamp = Time.realtimeSinceStartupAsDouble;
+            wasTimingFocused = Application.isFocused;
+        }
+
         /// <summary>
         /// 새 청소 판을 위해 타이머 상태만 초기화합니다.
         /// 오염·광택 상태는 각 소유 컴포넌트가 복원합니다.
@@ -126,6 +138,7 @@ namespace SqueakSqueak.Cleaning
             HasStarted = false;
             ElapsedSeconds = 0f;
             isTimingStopped = false;
+            isTimingPaused = false;
             previousTimingTimestamp = Time.realtimeSinceStartupAsDouble;
             wasTimingFocused = Application.isFocused;
             ProgressChanged?.Invoke();
@@ -133,7 +146,7 @@ namespace SqueakSqueak.Cleaning
 
         private void HandleCleaningApplied()
         {
-            if (isTimingStopped)
+            if (isTimingStopped || isTimingPaused)
             {
                 return;
             }

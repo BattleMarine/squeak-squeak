@@ -48,6 +48,7 @@ namespace SqueakSqueak.Cleaning
             if (!initialized || subscribed) return;
             completion.RoundCompleted += OnCompleted;
             completion.RoundRestarting += CancelAndRestore;
+            completion.RoundPreparing += CancelAndRestore;
             subscribed = true;
             // 완료 중 재활성화는 알림/감상 재생 없이 현재 결과를 보관 위치로만 표현합니다.
             if (completion.IsCompleted) { ShowCoin(); SetStored(); }
@@ -57,7 +58,7 @@ namespace SqueakSqueak.Cleaning
         {
             if (subscribed)
             {
-                if (completion != null) { completion.RoundCompleted -= OnCompleted; completion.RoundRestarting -= CancelAndRestore; }
+                if (completion != null) { completion.RoundCompleted -= OnCompleted; completion.RoundRestarting -= CancelAndRestore; completion.RoundPreparing -= CancelAndRestore; }
                 subscribed = false;
             }
             CancelAndRestore();

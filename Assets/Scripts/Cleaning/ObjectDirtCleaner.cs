@@ -22,6 +22,7 @@ namespace SqueakSqueak.Cleaning
         public int InitialDirtCount { get; private set; }
 
         public int RemovedDirtCount { get; private set; }
+        public bool ProcessingAllowed { get; private set; } = true;
 
         public float RemovalRatio => InitialDirtCount == 0 ? 1f : (float)RemovedDirtCount / InitialDirtCount;
 
@@ -43,17 +44,7 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
-            for (var index = 0; index < dirtObjects.Length; index++)
-            {
-                var dirt = dirtObjects[index];
-                if (dirt == null)
-                {
-                    continue;
-                }
-
-                InitialDirtCount++;
-                dirt.Removed += HandleDirtRemoved;
-            }
+            ReplaceDirt(dirtObjects);
         }
 
         private void OnDestroy()
@@ -83,7 +74,7 @@ namespace SqueakSqueak.Cleaning
         /// </summary>
         public int ApplyCleaningAtSurfaceHit(RaycastHit surfaceHit, float deltaTime)
         {
-            if (deltaTime <= 0f)
+            if (!ProcessingAllowed || !isActiveAndEnabled || !float.IsFinite(deltaTime) || deltaTime <= 0f)
             {
                 return 0;
             }
@@ -136,6 +127,24 @@ namespace SqueakSqueak.Cleaning
                     dirtObjects[index].ResetDirt();
                 }
             }
+        }
+
+        public void SetProcessingAllowed(bool allowed) => ProcessingAllowed = allowed;
+
+        /// <summary>배열·옛 Removed 구독·분모를 함께 교체해 이전 판의 알림을 받지 않습니다.</summary>
+        public void ReplaceDirt(ObjectDirt[] objects)
+        {
+            var copy = objects == null ? Array.Empty<ObjectDirt>() : (ObjectDirt[])objects.Clone();
+            var unique = new System.Collections.Generic.HashSet<ObjectDirt>();
+            foreach (var dirt in copy)
+                if (dirt != null && !unique.Add(dirt)) throw new ArgumentException("Duplicate dirt reference.", nameof(objects));
+            foreach (var dirt in dirtObjects)
+                if (dirt != null) dirt.Removed -= HandleDirtRemoved;
+            dirtObjects = copy;
+            InitialDirtCount = unique.Count;
+            RemovedDirtCount = 0;
+            foreach (var dirt in dirtObjects)
+                if (dirt != null) dirt.Removed += HandleDirtRemoved;
         }
 
         private void HandleDirtRemoved(ObjectDirt dirt)

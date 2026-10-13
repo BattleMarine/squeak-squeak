@@ -43,6 +43,7 @@ namespace SqueakSqueak.Cleaning
             objectDirtCleaner.DirtRemoved += OnDirtRemoved;
             completion.RoundCompleted += OnCompleted;
             completion.RoundRestarted += OnRestarted;
+            completion.RoundPreparing += OnRestarted;
             hasFocus = Application.isFocused;
             completionPlayed = completion.IsCompleted; // 완료 중 재활성으로 완료음을 다시 만들지 않습니다.
             subscribed = true;
@@ -56,7 +57,7 @@ namespace SqueakSqueak.Cleaning
                 if (toolSelection != null) toolSelection.ToolSelected -= OnToolSelected;
                 if (surfaceContamination != null) { surfaceContamination.SurfaceReset -= StopAudio; surfaceContamination.SurfaceContactChanged -= OnSurfaceChanged; }
                 if (objectDirtCleaner != null) { objectDirtCleaner.ContactCleaningApplied -= OnObjectChanged; objectDirtCleaner.DirtRemoved -= OnDirtRemoved; }
-                if (completion != null) { completion.RoundCompleted -= OnCompleted; completion.RoundRestarted -= OnRestarted; }
+                if (completion != null) { completion.RoundCompleted -= OnCompleted; completion.RoundRestarted -= OnRestarted; completion.RoundPreparing -= OnRestarted; }
                 subscribed = false;
             }
             StopAudio();

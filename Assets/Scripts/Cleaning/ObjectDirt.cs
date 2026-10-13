@@ -22,6 +22,18 @@ namespace SqueakSqueak.Cleaning
 
         public bool IsRemoved { get; private set; }
 
+        /// <summary>생성한 단계 오염의 내구도/원래 크기를 활성화 전에 확정합니다.</summary>
+        public void Configure(float initialDurability, Vector3 localScale)
+        {
+            if (!float.IsFinite(initialDurability) || initialDurability < .01f)
+                throw new ArgumentOutOfRangeException(nameof(initialDurability));
+            durability = initialDurability;
+            initialLocalScale = localScale;
+            transform.localScale = localScale;
+            CurrentDurability = durability;
+            IsRemoved = false;
+        }
+
         private void Awake()
         {
             initialLocalScale = transform.localScale;
