@@ -151,6 +151,17 @@ namespace SqueakSqueak.Progression
             if (!CoinSurfaceMapper.TryGetSupportedBounds(stage.Coin.SurfaceMesh, out var bounds)) return Fail("지원되지 않는 동전 Mesh입니다.");
             if (RoundId == long.MaxValue) return Fail("판 ID가 한계에 도달했습니다.");
             var tools = new List<CleaningToolDefinition>();
+            var unavailable = new Dictionary<CleaningToolDefinition, string>();
+            foreach (var tool in catalog.Tools)
+            {
+                if (!access.Owns(tool.Id)) unavailable[tool.Definition] = "미보유 도구";
+                else
+                {
+                    var allowed = false;
+                    foreach (var id in stage.AllowedToolIds) if (id == tool.Id) { allowed = true; break; }
+                    if (!allowed) unavailable[tool.Definition] = "이 단계 사용 불가";
+                }
+            }
             foreach (var id in stage.AllowedToolIds)
                 if (access.Owns(id)) foreach (var tool in catalog.Tools) if (tool.Id == id) tools.Add(tool.Definition);
             var retry = State == CleaningStageState.Result && CurrentStage == stage;
@@ -177,7 +188,7 @@ namespace SqueakSqueak.Progression
                 surface.ConfigureStage(stage.InitialSurfaceDirt, stage.InitialPolish, stage.DirtPattern, stage.Coin.BaseColor);
                 PositionDirt(preparedRoot, preparedDirt, stage, bounds);
                 objectCleaner.ReplaceDirt(preparedDirt);
-                selection.ConfigureAvailableTools(tools.ToArray());
+                selection.ConfigureAvailableTools(tools.ToArray(), unavailable);
                 completion.ResetRoundState();
                 ReleaseDirtRoot(generatedDirtRoot);
                 generatedDirtRoot = preparedRoot;
@@ -218,7 +229,9 @@ namespace SqueakSqueak.Progression
                 var go = new GameObject("Dirt_" + (i + 1));
                 go.SetActive(false); go.layer = 2; go.transform.SetParent(root.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = catalog.ObjectDirtMesh;
-                go.AddComponent<MeshRenderer>().sharedMaterial = catalog.ObjectDirtMaterial;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = catalog.ObjectDirtMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 dirt[i] = go.AddComponent<ObjectDirt>();
             }
             return dirt;

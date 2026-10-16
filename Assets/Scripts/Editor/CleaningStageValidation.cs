@@ -201,6 +201,7 @@ namespace SqueakSqueak.EditorValidation
                     Check(owner.TryStartStage(stage.Id, previousRound), "단계 적용 " + stage.Id, ref checks);
                     Check(owner.RoundId > previousRound && owner.StageId == stage.Id && owner.State == CleaningStageState.Cleaning, "단계/판 ID 증가", ref checks);
                     Check(cleaner.InitialDirtCount == stage.ObjectDirt.Count && cleaner.RemovedDirtCount == 0 && owner.ActiveDirtCount == stage.ObjectDirt.Count, "단계별 A2/3/5", ref checks);
+                    Check(controller.scene.GetRootGameObjects().SelectMany(go=>go.GetComponentsInChildren<ObjectDirt>(true)).Where(d=>d.gameObject.activeInHierarchy&&d.transform.parent.name=="StageDirt").All(d=>d.GetComponent<Renderer>().shadowCastingMode==UnityEngine.Rendering.ShadowCastingMode.Off),"모든 단계 신규 먼지 그림자 Off",ref checks);
                     Check(surface.SurfaceMask.Pattern == stage.DirtPattern && Mathf.Approximately(surface.SurfaceMask.InitialIntensity, stage.InitialSurfaceDirt) && surface.SurfaceMask.CurrentDirtSum == surface.SurfaceMask.InitialDirtSum && surface.Polish == stage.InitialPolish, "양면 패턴/광택 초기화", ref checks);
                     Check(completion.RequiredObjectDirtRemovalRatio == stage.RequiredA && completion.RequiredSurfaceDirtRemovalRatio == stage.RequiredB && completion.RequiredPolish == stage.RequiredPolish, "실제 목표", ref checks);
                     Check(selection.AvailableToolCount == stage.AllowedToolIds.Count && selection.CurrentTool.ToolId == CleaningToolId.DryCloth, "허용 목록/기본 도구", ref checks);

@@ -23,6 +23,9 @@ namespace SqueakSqueak.Cleaning
 
         [SerializeField]
         private Color selectedColor = new Color(0.12f, 0.54f, 0.62f, 0.98f);
+        private static readonly Color LockedColor = new(.18f, .18f, .21f, .95f);
+        private Text label;
+        private string originalLabel;
 
         private void Awake()
         {
@@ -34,6 +37,8 @@ namespace SqueakSqueak.Cleaning
             }
 
             button.onClick.AddListener(SelectTool);
+            label = button.GetComponentInChildren<Text>(true);
+            if (label != null) originalLabel = label.text;
         }
 
         private void OnEnable()
@@ -44,6 +49,7 @@ namespace SqueakSqueak.Cleaning
             }
 
             toolSelection.ToolSelected += HandleToolSelected;
+            toolSelection.AvailableToolsChanged += RefreshVisual;
             RefreshVisual();
         }
 
@@ -52,6 +58,7 @@ namespace SqueakSqueak.Cleaning
             if (toolSelection != null)
             {
                 toolSelection.ToolSelected -= HandleToolSelected;
+                toolSelection.AvailableToolsChanged -= RefreshVisual;
             }
         }
 
@@ -75,7 +82,11 @@ namespace SqueakSqueak.Cleaning
 
         private void RefreshVisual()
         {
-            background.color = toolSelection.CurrentTool == tool ? selectedColor : normalColor;
+            var available = toolSelection.IsAvailable(tool);
+            button.interactable = available;
+            background.color = !available ? LockedColor : toolSelection.CurrentTool == tool ? selectedColor : normalColor;
+            if (label != null)
+                label.text = available ? originalLabel : tool.DisplayName + "\n<size=14>잠김 · " + toolSelection.GetUnavailableReason(tool) + "</size>";
         }
     }
 }

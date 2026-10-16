@@ -12,6 +12,15 @@
 
 ## 사용자 수동 확인
 
+### Editor 전체 도구 검사 (이번 Play/판만)
+
+일반 시작은 stage-01·마른 천만 허용한다. 작은 솔/광택천은 비활성화되고 `잠김 · 미보유 도구`를 표시한다. 소유했더라도 현재 단계가 허용하지 않으면 `잠김 · 이 단계 사용 불가`다. 상점/구매 기능을 추가했다는 뜻은 아니다.
+
+- CleaningRoom Play의 청소 상태에서 메뉴 `Squeak Squeak > Testing > Tools > Enable All Tools (This Play Only)`를 실행하면 현재 판의 세 도구를 검사할 수 있다. 현재 청소 수치·판·단계 목표는 그대로이고 정식 데이터·소유권·저장은 변경하지 않는다.
+- `Restore Normal Tool Limits`로 원래 목록/잠금 사유를 복원한다. 단계/새 판 전환 또는 Stop→새 Play에서는 정상 제한이 다시 적용된다. Editor 폴더의 코드만 제공하므로 Player에는 이 메뉴가 없다.
+- 검사: 새 Play/Pause에서 `CleaningToolFollowupValidation.Run()`64조건. 1280×720 Canvas 렌더는 `CaptureUi(".utmp/s302-followup-ui.png")`; Overlay 설정을 임시 전환·복원한다. 이 검사 이후 단계 자원 검사를 이어갈 때는 먼저 실제 프레임을 진행해 지연 Destroy를 비워야 한다. 또는 별도 새 Play에서 `CleaningStageValidation.RunPlay()`140조건→실제1프레임→`VerifyResources()`를 실행한다.
+- 신규 단계 먼지는 기존 FixedDirt와 동일하게 Cast Shadows=Off로 생성된다. 실제 메인 카메라 전후 비교에서 동전 좌상단의 떠다니는 검은 원2개가 사라졌으며 동전/A 자체는 유지된다. 이 후속 변경은 기존 빌드에 포함되지 않았다(이번에는 빌드하지 않음).
+
 새 빌드는 `Builds/Windows/Step3-20261013-stage-rub/SqueakSqueak.exe`이며 출력 폴더 전체를 유지한다. 초기 stage-01만 출시 경로로 연결됐다. stage-02/03 진입은 후속 진행/구매/UI 작업 전에는 개발 검사 API만 사용한다. 보상·저장·상점 기능은 아직 없다.
 
 1. 새 판의 동전 위에서 좌클릭을 누른 채10초 정지한다. A/B/광택이 변하지 않고 청소 타이머도 시작되지 않아야 한다. 같은 곳을 재클릭해도 동일하다.
