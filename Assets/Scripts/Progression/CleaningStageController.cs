@@ -186,6 +186,8 @@ namespace SqueakSqueak.Progression
                 coinRenderer.sharedMaterial = stage.Coin.SurfaceMaterial;
                 if (!pointer.RefreshSurfaceGeometry()) throw new InvalidOperationException("Coin pointer refresh failed.");
                 surface.ConfigureStage(stage.InitialSurfaceDirt, stage.InitialPolish, stage.DirtPattern, stage.Coin.BaseColor);
+                objectCleaner.SetReactionProfile(stage.Coin.ReactionProfile);
+                surface.SetReactionProfile(stage.Coin.ReactionProfile);
                 PositionDirt(preparedRoot, preparedDirt, stage, bounds);
                 objectCleaner.ReplaceDirt(preparedDirt);
                 selection.ConfigureAvailableTools(tools.ToArray(), unavailable);

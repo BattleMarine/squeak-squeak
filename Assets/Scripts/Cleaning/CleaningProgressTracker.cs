@@ -160,5 +160,8 @@ namespace SqueakSqueak.Cleaning
             ProgressChanged?.Invoke();
         }
 
+        /// <summary>첫 유효 풀림도 실제 작업 활동입니다. 스캐너/무효 클릭에서는 호출하지 않습니다.</summary>
+        public void NotifyTreatmentApplied() => HandleCleaningApplied();
+
     }
 }

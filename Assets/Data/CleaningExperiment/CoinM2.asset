@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed2cfedaf08ce7548a3d962bd635a9e7, type: 3}
+  m_Name: CoinM2
+  m_EditorClassIdentifier: Assembly-CSharp::SqueakSqueak.Progression.CoinDefinition
+  id: rb-coin-m2
+  displayName: M2
+  surfaceMesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  surfaceMaterial: {fileID: 2100000, guid: e9525948194e3f640a60667e1ac67168, type: 2}
+  baseColor: {r: 0.72, g: 0.78, b: 0.84, a: 1}
+  reactionProfile: {fileID: 11400000, guid: fde2e7a377c5a3842a6344235f8ff659, type: 2}

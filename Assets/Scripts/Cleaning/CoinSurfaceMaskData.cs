@@ -14,6 +14,7 @@ namespace SqueakSqueak.Cleaning
         private readonly float[][] initialDirt;
         private readonly float[][] currentDirt;
         private readonly float[][] currentPolish;
+        private readonly bool[][] softened;
         private readonly double[] initialSums = new double[2];
         private readonly double[] currentSums = new double[2];
         private readonly double[] polishSums = new double[2];
@@ -51,6 +52,7 @@ namespace SqueakSqueak.Cleaning
             initialDirt = new[] { new float[TexelCount], new float[TexelCount] };
             currentDirt = new[] { new float[TexelCount], new float[TexelCount] };
             currentPolish = new[] { new float[TexelCount], new float[TexelCount] };
+            softened = new[] { new bool[TexelCount], new bool[TexelCount] };
             for (var j = 0; j < resolution; j++)
             for (var i = 0; i < resolution; i++)
             {
@@ -90,6 +92,16 @@ namespace SqueakSqueak.Cleaning
 
         public double GetCurrentPolishSum(CoinSurfaceFace face) => polishSums[FaceIndex(face)];
 
+        /// <summary>B/광택과 독립인 풀림 원본. B가 남은 텍셀에만 존재합니다.</summary>
+        public bool IsSoftened(CoinSurfaceFace face, int index) => softened[FaceIndex(face)][index];
+        public bool TrySoften(CoinSurfaceFace face, int index)
+        {
+            if ((face != CoinSurfaceFace.Front && face != CoinSurfaceFace.Back) || !IsValidTexel(index)) return false;
+            var f = FaceIndex(face);
+            if (currentDirt[f][index] <= 0 || softened[f][index]) return false;
+            softened[f][index] = true; Revision++; return true;
+        }
+
         public bool TrySetPolish(CoinSurfaceFace face, int index, float value)
         {
             if ((face != CoinSurfaceFace.Front && face != CoinSurfaceFace.Back) ||
@@ -114,6 +126,7 @@ namespace SqueakSqueak.Cleaning
             var previous = currentDirt[faceIndex][index];
             if (previous == value) return false;
             currentDirt[faceIndex][index] = value;
+            if (value == 0) softened[faceIndex][index] = false;
             currentSums[faceIndex] += (double)value - previous;
             Revision++;
             return true;
@@ -124,6 +137,7 @@ namespace SqueakSqueak.Cleaning
             for (var face = 0; face < 2; face++)
             {
                 Array.Copy(initialDirt[face], currentDirt[face], TexelCount);
+                Array.Clear(softened[face], 0, TexelCount);
                 currentSums[face] = initialSums[face];
                 for (var index = 0; index < TexelCount; index++)
                     currentPolish[face][index] = validTexels[index] ? InitialPolish : 0f;

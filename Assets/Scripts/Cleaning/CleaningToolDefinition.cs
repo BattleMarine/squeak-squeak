@@ -4,9 +4,12 @@ namespace SqueakSqueak.Cleaning
 {
     public enum CleaningToolId
     {
-        DryCloth,
-        SmallBrush,
-        PolishingCloth
+        DryCloth = 0,
+        SmallBrush = 1,
+        PolishingCloth = 2,
+        ExperimentToothbrush = 100,
+        ExperimentCloth = 101,
+        Dropper = 102
     }
 
     [CreateAssetMenu(fileName = "CleaningTool_", menuName = "Squeak Squeak/Cleaning Tool", order = 10)]
@@ -45,6 +48,9 @@ namespace SqueakSqueak.Cleaning
         public float SurfaceDirtRemovalPerSecond => surfaceDirtRemovalPerSecond;
 
         public float PolishGainPerSecond => polishGainPerSecond;
+        public bool IsDropper => toolId == CleaningToolId.Dropper;
+        public CleaningToolId FeedbackToolId => toolId == CleaningToolId.ExperimentToothbrush ? CleaningToolId.SmallBrush :
+            toolId == CleaningToolId.ExperimentCloth ? CleaningToolId.DryCloth : toolId;
 
         private void OnValidate()
         {

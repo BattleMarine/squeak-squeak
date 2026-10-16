@@ -73,6 +73,10 @@ namespace SqueakSqueak.Cleaning
         private int rubFrame = -1;
         private CleaningRubSample rubSample;
         private RaycastHit rubHit;
+        private readonly CleaningDropClickGate dropGate = new();
+        private int dropFrame = -1;
+        private bool dropAccepted;
+        private CoinSurfaceContact dropContact;
         private EventSystem uiEventSystem;
         private PointerEventData uiPointer;
         private readonly System.Collections.Generic.List<RaycastResult> uiHits = new();
@@ -139,6 +143,7 @@ namespace SqueakSqueak.Cleaning
             var valid = isActiveAndEnabled && Application.isFocused && useToolAction != null && useToolAction.IsPressed() &&
                 !IsRotating && !rotateCoinAction.IsPressed() && !IsPointerOverUi &&
                 !resetViewAction.WasPressedThisFrame() && zoomAction.ReadValue<Vector2>().sqrMagnitude <= Mathf.Epsilon;
+            valid &= toolSelection == null || toolSelection.CurrentTool == null || !toolSelection.CurrentTool.IsDropper;
             if (valid) UpdateSurfaceFromScreenPosition(pointerPositionAction.ReadValue<Vector2>());
             if (useToolAction != null && (useToolAction.WasPressedThisFrame() || useToolAction.WasReleasedThisFrame())) rubMotion.BreakContact();
             rubSample = rubMotion.Sample(Time.frameCount, valid && HasCleanableContact, CurrentSurfaceContact,
@@ -150,11 +155,31 @@ namespace SqueakSqueak.Cleaning
 
         private void BreakRubContact()
         {
+            dropGate.RequireRelease(); dropAccepted = false; dropFrame = Time.frameCount;
             rubMotion.BreakContact(); rubSample = default; rubHit = default;
             rubFrame = Time.frameCount; // 같은 프레임의 다른 소비자가 단절 전 샘플을 재사용하지 않습니다.
         }
 
         private void HandleToolSelected(CleaningToolDefinition _) => BreakRubContact();
+
+        public bool TryGetDropContact(out CoinSurfaceContact contact)
+        {
+            if (dropFrame != Time.frameCount) EvaluateDropFrame();
+            contact = dropContact;
+            return dropAccepted;
+        }
+
+        private void EvaluateDropFrame()
+        {
+            var pressed = useToolAction != null && useToolAction.IsPressed();
+            var valid = isActiveAndEnabled && Application.isFocused && toolSelection != null && toolSelection.CurrentTool != null &&
+                toolSelection.CurrentTool.IsDropper && !IsRotating && !rotateCoinAction.IsPressed() && !IsPointerOverUi &&
+                !resetViewAction.WasPressedThisFrame() && zoomAction.ReadValue<Vector2>().sqrMagnitude <= Mathf.Epsilon;
+            if (valid) UpdateSurfaceFromScreenPosition(pointerPositionAction.ReadValue<Vector2>());
+            dropAccepted = dropGate.Sample(Time.frameCount, pressed, valid && HasCleanableContact);
+            dropContact = dropAccepted ? CurrentSurfaceContact : default;
+            dropFrame = Time.frameCount;
+        }
 
         /// <summary>기존 LMB·UI·MMB 입력 판정을 통과한 앞/뒷면 접촉만 제공합니다.</summary>
         public bool TryGetToolUseContact(out CoinSurfaceContact contact)
@@ -262,6 +287,7 @@ namespace SqueakSqueak.Cleaning
 
             var screenPosition = pointerPositionAction.ReadValue<Vector2>();
             UpdateSurfaceFromScreenPosition(screenPosition);
+            if (dropFrame != Time.frameCount) EvaluateDropFrame();
         }
 
         private bool UpdateRotation()

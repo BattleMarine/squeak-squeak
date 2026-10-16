@@ -73,7 +73,7 @@ namespace SqueakSqueak.Cleaning
         /// <summary>공통 프레임 판정이 승인한 이동 구간/예산만 적용합니다. 정지점·최초 클릭은 승인하지 않습니다.</summary>
         public bool ApplyApprovedSweep(CoinSurfaceMaskData data, CoinSurfaceContact from, CoinSurfaceContact to,
             Matrix4x4 matrix, Bounds bounds, object toolKey, float worldRadius, float removalPerSecond,
-            float effectiveSeconds, float polishPerSecond = 0f)
+            float effectiveSeconds, float polishPerSecond = 0f, CleaningReactionProfile reaction = null, CleaningToolId reactionTool = default)
         {
             LastFrameAccepted = false; LastSampleCount = 0;
             if (data == null || toolKey == null || !from.IsCleanable || !to.IsCleanable || from.Face != to.Face ||
@@ -101,7 +101,8 @@ namespace SqueakSqueak.Cleaning
                 for (var sample = 0; sample < samples; sample++)
                 {
                     var center = Vector3.Lerp(start, current.LocalPosition, (sample + .5f) / samples);
-                    changed |= ApplyDisk(data, current.Face, matrix, bounds, center, worldRadius, amountPerSample, polishPerSample);
+                    changed |= ApplyDisk(data, current.Face, matrix, bounds, center, worldRadius, amountPerSample,
+                        reaction != null ? 0 : polishPerSample, reaction, reactionTool);
                 }
             Capture(data, current, matrix, bounds, toolKey, worldRadius, removalPerSecond, polishPerSecond);
             LastFrameAccepted = true;
@@ -125,7 +126,8 @@ namespace SqueakSqueak.Cleaning
         }
 
         private static bool ApplyDisk(CoinSurfaceMaskData data, CoinSurfaceFace face, Matrix4x4 matrix,
-            Bounds bounds, Vector3 center, float radius, double amount, double polishAmount)
+            Bounds bounds, Vector3 center, float radius, double amount, double polishAmount,
+            CleaningReactionProfile reaction = null, CleaningToolId reactionTool = default)
         {
             var sx = matrix.MultiplyVector(Vector3.right).magnitude;
             var sz = matrix.MultiplyVector(Vector3.forward).magnitude;
@@ -156,7 +158,8 @@ namespace SqueakSqueak.Cleaning
                 var weight = Math.Max(0d, 1d - squared / radiusSquared);
                 weight *= weight;
                 var dirtBefore = data.GetDirt(face, index);
-                var decrease = amount * weight;
+                var coefficient = reaction != null ? reaction.SurfaceCoefficient(reactionTool, data.IsSoftened(face, index)) : 1;
+                var decrease = amount * weight * coefficient;
                 var remaining = Math.Max(0d, dirtBefore - decrease);
                 changed |= data.TrySetDirt(face, index, (float)remaining);
                 // 이 표본 시간 동안 선형으로 줄어드는 해당 텍셀 B의 평균입니다.
@@ -171,6 +174,23 @@ namespace SqueakSqueak.Cleaning
 
         private static int PixelBound(double position, int resolution, bool maximum) =>
             (int)Math.Max(0d, Math.Min(resolution - 1d, maximum ? Math.Ceiling(position) : Math.Floor(position)));
+
+        public static int SoftenDisk(CoinSurfaceMaskData data, CoinSurfaceContact contact, Matrix4x4 matrix, Bounds bounds, float radius)
+        {
+            if (data == null || !Finite(radius) || radius <= 0 || !contact.IsCleanable ||
+                !CoinSurfaceMapper.TryMapPoint(matrix,bounds,contact.WorldPosition,contact.WorldNormal,out var mapped) || mapped.Face != contact.Face) return 0;
+            var changed = 0;
+            for (var j=0;j<data.Resolution;j++)
+            for (var i=0;i<data.Resolution;i++)
+            {
+                var index=j*data.Resolution+i;
+                if (!data.IsValidTexel(index)) continue;
+                var local=bounds.center+new Vector3((2f*(i+.5f)/data.Resolution-1)*bounds.extents.x,
+                    mapped.LocalPosition.y-bounds.center.y,(2f*(j+.5f)/data.Resolution-1)*bounds.extents.x);
+                if (matrix.MultiplyVector(local-mapped.LocalPosition).sqrMagnitude <= radius*radius && data.TrySoften(mapped.Face,index)) changed++;
+            }
+            return changed;
+        }
 
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }

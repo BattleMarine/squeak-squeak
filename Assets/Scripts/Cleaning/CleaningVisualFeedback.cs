@@ -20,6 +20,7 @@ namespace SqueakSqueak.Cleaning
 
         private readonly Vector3[] removedLocalPoints = new Vector3[5];
         private readonly CleaningToolId[] removedTools = new CleaningToolId[5];
+        private readonly CoinSurfaceFace[] removedFaces = new CoinSurfaceFace[5];
         private int pendingRemovalCount;
         private bool subscribed, pendingChange;
         private SurfaceCleaningChange lastChange;
@@ -107,9 +108,10 @@ namespace SqueakSqueak.Cleaning
             var matrix = surfacePointer.SurfaceLocalToWorldMatrix;
             var local = matrix.inverse.MultiplyPoint3x4(dirt.transform.position);
             var bounds = surfacePointer.SurfaceLocalBounds;
-            // 현재 A는 Front 부착입니다. A의 Collider를 만들거나 반대면으로 복제하지 않습니다.
-            local.y = bounds.center.y + bounds.extents.y;
+            var face=local.y>=bounds.center.y?CoinSurfaceFace.Front:CoinSurfaceFace.Back;
+            local.y = bounds.center.y + (face==CoinSurfaceFace.Front?1:-1)*bounds.extents.y;
             removedLocalPoints[pendingRemovalCount] = local;
+            removedFaces[pendingRemovalCount] = face;
             removedTools[pendingRemovalCount++] = tool.ToolId;
         }
 
@@ -139,31 +141,30 @@ namespace SqueakSqueak.Cleaning
             IsContactVisible = contactRemaining > 0f;
             if (IsContactVisible) DrawContact(contact.WorldPosition + normal * surfaceOffset, right, forward, tool);
             else foreach (var line in contactLines) line.enabled = false;
-            if (contact.Face == CoinSurfaceFace.Front)
             for (var i = 0; i < pendingRemovalCount; i++)
-                if (removedTools[i] == tool.ToolId) EmitRemoval(matrix.MultiplyPoint3x4(removedLocalPoints[i]), normal, right, forward, tool.ToolId);
+                if (removedTools[i] == tool.ToolId && removedFaces[i] == contact.Face) EmitRemoval(matrix.MultiplyPoint3x4(removedLocalPoints[i]), normal, right, forward, tool.FeedbackToolId);
             pendingRemovalCount = 0;
         }
 
         private void DrawContact(Vector3 center, Vector3 right, Vector3 forward, CleaningToolDefinition tool)
         {
             var size = tool.BrushRadius * .55f;
-            var color = tool.ToolId == CleaningToolId.SmallBrush ? new Color(1f, .67f, .3f, .8f) :
-                tool.ToolId == CleaningToolId.PolishingCloth && lastChange.PolishChanged ? new Color(1f, .98f, .7f, .95f) :
+            var color = tool.FeedbackToolId == CleaningToolId.SmallBrush ? new Color(1f, .67f, .3f, .8f) :
+                tool.FeedbackToolId == CleaningToolId.PolishingCloth && lastChange.PolishChanged ? new Color(1f, .98f, .7f, .95f) :
                 new Color(.55f, .9f, 1f, .7f);
             color.a *= Mathf.Clamp01(contactRemaining / contactLifetime);
             for (var i = 0; i < contactLines.Length; i++)
             {
                 var line = contactLines[i]; line.enabled = true; line.startColor = line.endColor = color;
-                line.widthMultiplier = tool.ToolId == CleaningToolId.SmallBrush ? .012f : .008f;
-                if (tool.ToolId == CleaningToolId.PolishingCloth && lastChange.PolishChanged)
+                line.widthMultiplier = tool.FeedbackToolId == CleaningToolId.SmallBrush ? .012f : .008f;
+                if (tool.FeedbackToolId == CleaningToolId.PolishingCloth && lastChange.PolishChanged)
                 {
                     var angle = i * Mathf.PI / 3f;
                     var axis = right * Mathf.Cos(angle) + forward * Mathf.Sin(angle);
                     var length = size * (.65f + .15f * Mathf.Sin(animationTime * 12f));
                     line.SetPosition(0, center - axis * length); line.SetPosition(1, center); line.SetPosition(2, center + axis * length);
                 }
-                else if (tool.ToolId == CleaningToolId.SmallBrush)
+                else if (tool.FeedbackToolId == CleaningToolId.SmallBrush)
                 {
                     var offset = forward * ((i - 1) * size * .5f);
                     line.SetPosition(0, center + offset - right * size * .55f - forward * size * .3f);

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74d7a3eee7a13d49843eb46ebb065d2, type: 3}
+  m_Name: RbExperiment
+  m_EditorClassIdentifier: Assembly-CSharp::SqueakSqueak.Experiment.CleaningExperimentDefinition
+  layoutId: rb-fixed-v1
+  coins:
+  - {fileID: 11400000, guid: baab1afd37c2cff4ca0e8db5f1d0b9ae, type: 2}
+  - {fileID: 11400000, guid: 8968263712a73864e9d85a1bbe0101f3, type: 2}
+  tools:
+  - {fileID: 11400000, guid: d60200ec16412ef419f880122bfe6dec, type: 2}
+  - {fileID: 11400000, guid: 0f281081202a67e4d99596277c4c05b0, type: 2}
+  - {fileID: 11400000, guid: 2063cfb432fe3a8419e8eb1e68c85ab7, type: 2}
+  placements:
+  - face: 1
+    uv: {x: 0.8, y: 0.75}
+    durability: 1
+    worldRadius: 0.12
+  - face: 1
+    uv: {x: 0.5, y: 0.12}
+    durability: 1
+    worldRadius: 0.12
+  - face: 2
+    uv: {x: 0.85, y: 0.7}
+    durability: 1
+    worldRadius: 0.12
+  - face: 2
+    uv: {x: 0.3, y: 0.12}
+    durability: 1
+    worldRadius: 0.12
+  dirtMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  dirtMaterial: {fileID: 2100000, guid: 62663c76c35c6a4448b01b6b5c91e7b9, type: 2}
+  initialB: 1

@@ -10,8 +10,9 @@ Shader "SqueakSqueak/Coin Surface"
         _MaximumSmoothness("Polished smoothness", Range(0,1)) = 0.9
         _DetailContrast("Minted pattern contrast", Range(0,0.5)) = 0.22
         _ReliefStrength("Visual engraving normal strength", Range(0,0.1)) = 0.035
-        [NoScaleOffset] _FrontSurfaceMask("Front: R dirt, G polish, A valid", 2D) = "black" {}
-        [NoScaleOffset] _BackSurfaceMask("Back: R dirt, G polish, A valid", 2D) = "black" {}
+        [NoScaleOffset] _FrontSurfaceMask("Front: R dirt, G polish, B softened, A valid", 2D) = "black" {}
+        [NoScaleOffset] _BackSurfaceMask("Back: R dirt, G polish, B softened, A valid", 2D) = "black" {}
+        [HideInInspector] _ExperimentScanner("Experiment scanner", Float) = 0
         _SurfaceBounds("Local center xyz / radius w", Vector) = (0,0,0,0.5)
         _SurfaceHalfHeight("Local half height", Float) = 1
         [HideInInspector] _SurfaceDebug("Validation channel view", Float) = 0
@@ -34,6 +35,7 @@ Shader "SqueakSqueak/Coin Surface"
             half _DetailContrast;
             half _ReliefStrength;
             half _SurfaceDebug;
+            half _ExperimentScanner;
         CBUFFER_END
         TEXTURE2D(_FrontSurfaceMask); SAMPLER(sampler_FrontSurfaceMask);
         TEXTURE2D(_BackSurfaceMask); SAMPLER(sampler_BackSurfaceMask);
@@ -87,7 +89,7 @@ Shader "SqueakSqueak/Coin Surface"
             float2 uv = local.xz / (2 * _SurfaceBounds.w) + 0.5;
             half4 mask = front ? SAMPLE_TEXTURE2D(_FrontSurfaceMask, sampler_FrontSurfaceMask, uv) :
                 SAMPLE_TEXTURE2D(_BackSurfaceMask, sampler_BackSurfaceMask, uv);
-            mask.rg *= mask.a;
+            mask.rgb *= mask.a;
             return mask;
         }
         // 자체 절차적 문양입니다. 지오메트리/Collider/마스크 좌표는 변경하지 않습니다.
@@ -156,9 +158,17 @@ Shader "SqueakSqueak/Coin Surface"
                 metalColor *= 0.85 + reeding * visibility * 0.08;
             }
             SurfaceData surface = (SurfaceData)0;
-            surface.albedo = lerp(_DirtColor.rgb, metalColor, clean);
+            half wet = mask.b * step(0.000001, mask.r);
+            surface.albedo = lerp(lerp(_DirtColor.rgb, half3(0.035,0.16,0.2), wet * 0.6), metalColor, clean);
             surface.metallic = lerp(_Metallic * 0.35, _Metallic, clean);
             surface.smoothness = lerp(lerp(_DirtySmoothness, _Smoothness, clean), _MaximumSmoothness, mask.g);
+            surface.smoothness = lerp(surface.smoothness, 0.5, wet * mask.r);
+            if (_ExperimentScanner > 0.5 && face != 0.5 && mask.r > 0)
+            {
+                half intensity = saturate(mask.r);
+                surface.albedo = lerp(surface.albedo, half3(0.02,0.8,1), intensity);
+                surface.emission = half3(0.02,0.7,1) * intensity;
+            }
             surface.normalTS = half3(0,0,1);
             surface.occlusion = 1;
             surface.alpha = 1;

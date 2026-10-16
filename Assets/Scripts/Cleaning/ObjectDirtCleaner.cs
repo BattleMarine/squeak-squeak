@@ -24,6 +24,13 @@ namespace SqueakSqueak.Cleaning
 
         public int RemovedDirtCount { get; private set; }
         public bool ProcessingAllowed { get; private set; } = true;
+        public CleaningReactionProfile ReactionProfile { get; private set; }
+        public void SetReactionProfile(CleaningReactionProfile profile)
+        {
+            if (ProcessingAllowed) throw new InvalidOperationException("Block processing before changing reactions.");
+            if (profile != null && !profile.IsValid) throw new ArgumentException("Invalid reaction profile.");
+            ReactionProfile = profile;
+        }
 
         public float RemovalRatio => InitialDirtCount == 0 ? 1f : (float)RemovedDirtCount / InitialDirtCount;
 
@@ -108,7 +115,9 @@ namespace SqueakSqueak.Cleaning
             }
 
             var brushRadiusSquared = tool.BrushRadius * tool.BrushRadius;
-            var removalAmount = tool.ObjectDirtRemovalPerSecond * deltaTime;
+            var removalAmount = tool.ObjectDirtRemovalPerSecond * deltaTime *
+                (ReactionProfile != null ? ReactionProfile.ObjectCoefficient(tool.ToolId) : 1);
+            if (removalAmount <= 0) return 0;
             var affectedCount = 0;
             for (var index = 0; index < dirtObjects.Length; index++)
             {

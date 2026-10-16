@@ -11,6 +11,7 @@ namespace SqueakSqueak.Progression
         [SerializeField] private Mesh surfaceMesh;
         [SerializeField] private Material surfaceMaterial;
         [SerializeField] private Color baseColor = Color.white;
+        [SerializeField] private SqueakSqueak.Cleaning.CleaningReactionProfile reactionProfile;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -18,5 +19,6 @@ namespace SqueakSqueak.Progression
         public Material SurfaceMaterial => surfaceMaterial;
         // 적용 담당은 인스턴스 PropertyBlock을 사용해야 합니다. 공유 Material을 수정하지 않습니다.
         public Color BaseColor => baseColor;
+        public SqueakSqueak.Cleaning.CleaningReactionProfile ReactionProfile => reactionProfile;
     }
 }

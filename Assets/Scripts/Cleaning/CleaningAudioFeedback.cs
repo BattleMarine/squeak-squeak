@@ -20,6 +20,7 @@ namespace SqueakSqueak.Cleaning
         private int removalFrame, changeFrame;
         private CleaningToolId removalTool, changedTool;
         private CoinSurfaceFace changedFace;
+        private CoinSurfaceFace removalFace;
         private float accentRemaining;
 
         private void Awake()
@@ -85,9 +86,11 @@ namespace SqueakSqueak.Cleaning
                 surfacePointer.SurfaceLocalBounds, hit.point, hit.normal, out var contact) || !contact.IsCleanable) return;
             pendingChange = true; changeFrame = Time.frameCount; changedTool = toolSelection.CurrentTool.ToolId; changedFace = contact.Face;
         }
-        private void OnDirtRemoved(ObjectDirt _)
+        private void OnDirtRemoved(ObjectDirt dirt)
         {
             if (toolSelection.CurrentTool == null) return;
+            var local=surfacePointer.SurfaceLocalToWorldMatrix.inverse.MultiplyPoint3x4(dirt.transform.position);
+            removalFace=local.y>=surfacePointer.SurfaceLocalBounds.center.y?CoinSurfaceFace.Front:CoinSurfaceFace.Back;
             pendingRemoval = true; removalFrame = Time.frameCount; removalTool = toolSelection.CurrentTool.ToolId;
         }
         private void LateUpdate()
@@ -104,7 +107,7 @@ namespace SqueakSqueak.Cleaning
             var tool = toolSelection.CurrentTool;
             if (!validUse || !hasFocus || !contact.IsCleanable || !surfacePointer.isActiveAndEnabled || completion.IsCompleted || tool == null)
             { StopUseAudio(); return; } // 완료 원샷은 닫힌 사용 gate와 독립적입니다.
-            var clip = tool.ToolId == CleaningToolId.SmallBrush ? smallBrushClip : tool.ToolId == CleaningToolId.PolishingCloth ? polishingClothClip : dryClothClip;
+            var clip = tool.FeedbackToolId == CleaningToolId.SmallBrush ? smallBrushClip : tool.FeedbackToolId == CleaningToolId.PolishingCloth ? polishingClothClip : dryClothClip;
             if (frictionSource.clip != clip) { StopSource(frictionSource); frictionSource.clip = clip; }
             if (frictionSource.isActiveAndEnabled && !frictionSource.isPlaying) { frictionSource.volume = 0f; frictionSource.Play(); }
             if (pendingChange && Time.frameCount - changeFrame <= 1 && changedTool == tool.ToolId && changedFace == contact.Face) accentRemaining = .08f;
@@ -113,7 +116,7 @@ namespace SqueakSqueak.Cleaning
             var targetVolume = frictionVolume * (accentRemaining > 0f ? 1.15f : 1f);
             frictionSource.volume = Mathf.MoveTowards(frictionSource.volume, targetVolume, 1.15f * frictionVolume * Mathf.Max(0f, deltaTime) / attackSeconds);
             // A 여러 개 제거는 프레임당 묶음1회. 재생 중인 제거음에 추가 음성을 중첩/예약하지 않습니다.
-            if (pendingRemoval && Time.frameCount - removalFrame <= 1 && removalTool == tool.ToolId && contact.Face == CoinSurfaceFace.Front &&
+            if (pendingRemoval && Time.frameCount - removalFrame <= 1 && removalTool == tool.ToolId && contact.Face == removalFace &&
                 removalSource.isActiveAndEnabled && !removalSource.isPlaying)
             { removalSource.clip = removalClip; removalSource.volume = removalVolume; removalSource.Play(); }
             pendingRemoval = false;
