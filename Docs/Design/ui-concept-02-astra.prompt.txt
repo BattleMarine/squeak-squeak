@@ -1,0 +1,30 @@
+Use case: ui-mockup
+Asset type: high-fidelity art-directed UI concept board for Korean PC game "뽀득뽀득", a top-down 3D coin-cleaning game.
+Primary request: Create a fresh, distinctive, polished game UI design proposal titled "뽀득뽀득", concept 02 "작은 수집가의 작업대". ONE portrait presentation board with TWO COMPLETE 16:9 desktop gameplay frames stacked vertically, equally large, slender outer margin and small clean captions. Overall aspect ratio around 4:5. Render at high detail with unusually careful Korean typography and readable concise UI. This is a concept mockup, not an actual screenshot.
+
+ART DIRECTION: bright, contemporary, cozy indie game about care and tactile satisfaction. Milk-white, powder blue, ink navy, soft apricot orange, with the brass coin as the warm visual focal point. Soft stylized 3D objects with matte clay-like simplification and convincing metallic coin highlights; orthographic straight top-down camera. Crisp 2D typography and graphic UI over the scene. Refined cheerful design, slightly playful rounded chunky Hangul wordmark, quiet Swiss-grid spacing, simple 1.5px dark-blue line icons, printed index-card / specimen-label motif. Low-detail pale birch desktop and a powder-blue rectangular cleaning mat with rounded corners. Desktop should feel airy, clean, usable and crafted. NOT photorealistic rustic brown workshop, NOT sage-green/ivory antique treatment, NOT a generic app dashboard, NOT mobile freemium UI. No excessive props, no plant frame, no characters, no bubbles, no sci-fi, no ornate fantasy ornamentation, no device bezel.
+
+Board only: cream-white background. Compact top header with dark navy title "뽀득뽀득" at left and smaller "02 / 작은 수집가의 작업대" at right. Small captions for the two frames: "01  닦는 시간" and "02  반짝이는 순간". No prose blocks outside screens.
+
+UPPER 16:9 SCREEN — MID-CLEAN GAMEPLAY:
+At top-left the small wordmark "뽀득뽀득" with one tiny four-point sparkle. Beside it a compact object label "낡은 동전" and a small outlined "01". Top-right a discreet clock icon with "02:14", treat as elapsed time, no urgency.
+Main area left-center, broadly 70% width: powder-blue cleaning mat, a single LARGE brass coin roughly 43% of screen height, fully visible unobstructed. Simple dotted rim and embossed abstract compass/star, fictional currency, no readable denominations. Dirty charcoal-brown dust on the left half, clear satisfying warm golden cleaned swath on right half, one small pale-blue cloth cursor with thin white circular contact ring at the boundary. No split-screen wipe divider, show naturally irregular cleaned area. Coin easily dominates attention. Small low-emphasis status pill close to mat upper edge reads "앞면".
+Right edge: one slim MILK-WHITE INDEX CARD clipped with a tiny blue paperclip, neat heading "작업 기록". Exactly three rows of progress, each icon + label + value + slim blue progress bar with a tiny dark target tick and small goal text:
+"큰 먼지 제거" "92%" "목표 90%" plus checkmark for reached goal;
+"얼룩 제거" "68%" "목표 80%";
+"광택" "24%" "목표 70%".
+No confusing single combined cleanliness bar. Use the same blue treatment on all bars except completed check, numbers are examples. Use ink navy text, good contrast. Card should be compact, ample leading, not a giant menu.
+At bottom center of the working area, a clean FLOATING TOOL TRAY with exactly three equal tiles. Simplified small physical tool illustrations and legible labels: blue folded cloth "마른 천", wood-handled short bristle brush "작은 솔", buttery yellow polishing cloth "광택천". The dry cloth tile has apricot fill, darker orange stroke, a small check and "선택" tag. Other tiles white with navy text. Each tool has its name at least 20px equivalent in 1280x720; no extra shortcut keys.
+Above tray, a tiny ink-blue helper line with little cloth icon "얼룩을 조금 더 닦아주세요".
+Lower screen edge, discreet but readable one-line controls: "좌클릭 드래그 · 닦기     중클릭 드래그 · 회전     휠 · 확대·축소     F · 시점 초기화".
+Leave broad safe space for mouse movement around coin; no UI overlap with workpiece, no ornamental charts.
+
+LOWER 16:9 SCREEN — COMPLETION:
+Same environment and UI design family but composed to celebrate the finished object. Header small brand same placement. At left-center, cleaned gold coin sits in a simple shallow powder-blue specimen tray, a tiny plain paper tag marked "01" at tray edge. Coin large and beautifully lit with only two precise little sparkles, almost fully top-down. No dirty debris remains.
+At right, a broad cream-white archival index card with subtle rounded corners, restrained tiny ruled lines and clipped corner detail. Small blue stamped text "청소 완료". Larger bold friendly navy headline "다시, 반짝!"
+Then small sentence "손끝으로 되찾은 반짝임".
+Three aligned readable results: "청결도" "96%", "광택도" "88%", "완료 시간" "03:24". One clear wide APRICOT primary button "새 청소 시작", navy lettering, satisfying soft bevel.
+No stars rating, no rewards, coins currency, shops, upgrades, menus, albums or invented collection controls. The archival treatment is only visual, not a new gameplay feature.
+
+Functional truth: existing game only requires mouse rubbing, three tools, separate debris/stain/polish progress, rotation/zoom/reset, results and restart. The proposed UI should be implementable in Unity uGUI at 1280x720. Do NOT imply persistent collection or added modes.
+Quality constraints: The two screenshots are complete 16:9 frames, upper and lower. Generous aligned margins, confidently simplified art, strong hierarchy, label clarity, high-quality Korean text rendered verbatim. No tiny fake body text, no watermark, no fake random labels. Make the design memorable and charming through proportions, color, beautiful tool icons and tactile cards, not extra decorations.

@@ -162,6 +162,8 @@ squeak-squeak/
 
 ## 기획 문서
 
+최종 공간 구성과 화면·조작·반응, 시작 화면의 착석 연출과 작업대↔전시장 연속 카메라 이동은 [스토리보드](Docs/Design/Storyboard.md)를 참고하세요. 구현 상태와 구분한 설계 문서입니다.
+
 다음 개발을 이어갈 구현 AI는 [Step 3 구현 지시서](Docs/Step3-구현지시서.md)와 [체크리스트](Docs/AI/Step3ImplementationChecklist.md)를 참고하세요. 이전 범위는 [Step 2 구현 지시서](Docs/Step2-구현지시서.md)에 보존합니다. 기존 구현 범위는 [Step 1 구현 지시서](Docs/Step1-구현지시서.md)에 보존합니다.
 
 단계별 개발 범위, 완료 기준과 다음 작업은 [개발 로드맵](ROADMAP.md)을 참고하세요.

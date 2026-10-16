@@ -1,0 +1,28 @@
+Use case: ui-mockup
+Asset type: full-screen 16:9 PC gameplay UI concept for the Korean Unity game "뽀득뽀득".
+Primary request: Create a completely new UI direction based on the user's reference game Undusted: Letters from the Past: contemplative tabletop restoration, a large tactile object, small unobtrusive interface, stylized 3D with visible pixelated textures and dithered shadows. Interpret those visual principles for this original fictional coin-cleaning game. This image is ONE immersive actual-looking gameplay screen, not a multi-panel design presentation, not a mood board. No outer margin or concept heading. Landscape 16:9, ideally 1920x1080 or higher.
+
+ART DIRECTION:
+A lived-in quiet desk in late afternoon. A painted muted turquoise-blue work surface fills the frame, with old wear marks and subtle paperlike stippling. Large diagonal cobalt and violet window-frame shadows sweep across the outer tabletop, warm soft sunlight catches the coin and nearby cloth. Original considered composition, not a reproduction of a specific Undusted scene. A rich blue/teal and indigo environment against warm ochre brass. Calm but not washed-out pastel. Stylized modest-poly 3D rendered through visible low-resolution pixel textures: small square texels, dithered gradients, simplified geometry, slightly stepped edges and painted roughness. Scene should feel like a playable indie game with crafted pixelated 3D, NOT photorealism, NOT smooth clay render, NOT toy-commercial plastic. UI text remains crisp and easy to read, even though world art is pixel-textured.
+
+COMPOSITION:
+Orthographic almost directly top-down viewpoint with just enough angle to see coin thickness. ONE large worn fictional coin centered around x=56%, y=45%, diameter about 46% of total screen height. Clear negative space around it for rubbing and rotation. Coin is the obvious focus of the screen. Embossed simple abstract compass/star within a dotted circular rim, no real currency, no tiny readable embossed writing. Left-upper third of the surface has thick dark brown dust, a few small dry dirt clumps; irregular sweeping wiped paths expose warm brass across the center and lower-right. Obvious satisfying local contrast between untouched dull grime and freshly revealed metal. The coin is still visibly mid-clean, not fully polished; avoid bright glitter all over it. A very small pale cloth-shaped contact cursor sits at the boundary, with a thin broken white contact circle. No human hand.
+Only restrained world props near cropped corners: a small closed aged notebook at extreme upper-left, the edge of a shallow wooden sorting tray at far right. These never compete with the coin.
+
+TOOLS AS OBJECTS:
+Exactly three selectable physical tools lying directly on the tabletop along the left edge, within comfortable reach, with enough vertical separation: one folded desaturated blue dry cloth; one small short wooden brush; one soft warm cream polishing cloth. All rendered in the same pixelated 3D art style. NO rectangular tool cards, NO large button tray, NO white panels.
+Currently selected dry cloth has a delicate warm ivory outline and one tiny checkmark; a single short readable floating label next to it says "마른 천". The other two tools can have small quiet labels "작은 솔" and "광택천" in off-white with subtle dark text shadows, not colored boxes. Physical shape and highlight make interaction discoverable.
+
+MINIMAL UI:
+Top-left discreet small Korean wordmark "뽀득뽀득" with tiny understated sparkle, no bigger than a normal game title label. Below or beside it, smaller muted text "낡은 동전". Top-right a tiny "앞면" status label, no clock, no currency, no extra menus or settings buttons.
+Bottom center, a single compact horizontal translucent deep-indigo HUD strip spanning about 62% of the width and at most 8% of the height. Very subtle edges, no large opaque card, no large rounded SaaS pill. Three equal groups side by side with clear readable Korean labels and values:
+"큰 먼지 92%" with a fine progress line filled to 92% and a tiny check at the reached target;
+"얼룩 68%" with a fine progress line filled to 68%;
+"광택 24%" with a fine progress line filled to 24%.
+Use pale warm ivory typography and muted gold/seafoam lines. Thin target ticks respectively at 90%, 80%, 70%, no large goal-number text. This is a mockup with example values. Keep all THREE measures independent and legible. Small distinct icons may accompany labels, but not decorative graphics.
+Just above the progress strip, centered and unobtrusive, a single contextual guidance line: "얼룩을 조금 더 닦아주세요".
+Below strip at bottom edge, very small but readable dim text: "드래그 · 닦기     중클릭 · 회전     휠 · 확대·축소     F · 시점 초기화".
+No countdown, giant logo, large success modal, result card, clipboard, floating rewards, coins wallet, unlocks, shop, inventory, level selection, collectibles menu, lives or score. Current scene is active cleaning. No "start" or "finish" button. No modern app-dashboard panels. No giant ornamental border.
+
+QUALITY:
+Make it convincing as an achievable carefully art-directed Unity indie game screenshot. Pixelated textures and dithered lighting must be clearly visible, especially on dirt, brass and desk, while silhouette and UI stay comprehensible. Korean text spelled exactly as specified and high contrast enough at normal PC resolution. Keep the interaction surface unobstructed. Prioritize the emotional experience: a quiet room, satisfying grime removal under the hand, warmth returning to a neglected little coin. The UI gently supports the act. Use original arrangements, original coin art, original color balance; do not include Undusted branding or copied screenshots.
