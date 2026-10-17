@@ -7,11 +7,11 @@ using SqueakSqueak.Progression;
 
 namespace SqueakSqueak.Experiment
 {
-    public enum ExperimentState { Inactive, Preparing, Cleaning, Ready, StoreConfirmation, Stored, DiscardConfirmation, QuitConfirmation, Failed }
+    public enum ExperimentState { Inactive, Preparing, Cleaning, Ready, StoreConfirmation, Stored, DiscardConfirmation, QuitConfirmation, Failed, Saving, SaveFailed, Viewing }
 
     /// <summary>명시적으로 진입한 실험 판의 단일 상태 소유자. 기존 단계 소유자는 실험 동안만 비활성화합니다.</summary>
     [DisallowMultipleComponent]
-    public sealed class CleaningExperimentController : MonoBehaviour
+    public sealed partial class CleaningExperimentController : MonoBehaviour
     {
         [SerializeField] private CleaningExperimentDefinition definition;
         [SerializeField] private CleaningStageController legacyStage;
@@ -30,7 +30,7 @@ namespace SqueakSqueak.Experiment
         [SerializeField] private Canvas canvas;
         [SerializeField] private Font uiFont;
         [SerializeField] private GameObject[] normalUi = Array.Empty<GameObject>();
-        [SerializeField, Min(1), Tooltip("시험용 메모리 보관 상한. 초과 시 기존 결과를 버리지 않고 보관을 거부합니다.")]
+        [SerializeField, Min(1), Tooltip("보관 상한(파일 형식 최대16). 초과 시 기존 결과를 버리지 않습니다.")]
         private int maximumStoredResults = 16;
 
         private readonly List<ExperimentSnapshot> stored = new();
@@ -76,11 +76,13 @@ namespace SqueakSqueak.Experiment
             selection.ToolSelected += OnToolSelected;
             Application.wantsToQuit += WantsToQuit;
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
-            RefreshView();
+            BeginPersistence();RefreshView();
         }
 
         private void Update()
         {
+            PollPersistence();
+            if(!SaveReady)return;
             if (!IsActive || view == null) return;
             if (State == ExperimentState.Cleaning || State == ExperimentState.Ready)
             {
@@ -104,7 +106,7 @@ namespace SqueakSqueak.Experiment
 
         public bool RequestCoin(int index)
         {
-            if(!isActiveAndEnabled||view==null)return false;
+            if(!isActiveAndEnabled||view==null||!SaveReady)return false;
             if (index<0||index>=definition.Coins.Count) return false;
             if (!IsActive)
             {
@@ -120,7 +122,7 @@ namespace SqueakSqueak.Experiment
                 }
                 return Enter(index);
             }
-            if (State==ExperimentState.Stored||State==ExperimentState.Failed) return StartCoin(index);
+            if (State==ExperimentState.Stored||State==ExperimentState.Viewing||State==ExperimentState.Failed) return StartCoin(index);
             if (State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready) return false;
             pendingCoin=index;pendingLeave=false;resumeState=State;DialogRoundId=RoundId;
             State=ExperimentState.DiscardConfirmation;SetWork(false);view.ShowDialog("미보관 작업을 폐기하고 새 동전을 시작할까요?");return true;
@@ -129,7 +131,7 @@ namespace SqueakSqueak.Experiment
         private bool Enter(int index)
         {
             originalStageId=legacyStage.StageId??"stage-01";
-            originalAudio=audioFeedback.enabled;originalVisual=visualFeedback.enabled;
+            // 목록/로드에서 일시 차단한 enabled 값을 원래 사용자 설정으로 다시 캡처하지 않습니다.
             // 기존 결과/트레이 연출을 먼저 복원한 뒤 정상 UI 상태를 캡처합니다.
             completion.PrepareRound();
             if (legacyStage.State==CleaningStageState.Cleaning)
@@ -196,14 +198,14 @@ namespace SqueakSqueak.Experiment
 
         public bool SelectTool(int index)
         {
-            if (!isActiveAndEnabled||(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready)||index<0||index>=definition.Tools.Count) return false;
+            if (!isActiveAndEnabled||!SaveReady||(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready)||index<0||index>=definition.Tools.Count) return false;
             return selection.TrySelect(definition.Tools[index]);
         }
         private void OnToolSelected(CleaningToolDefinition _) { if(IsActive)RefreshView(); }
         public bool ToggleScanner()
         {
             if(!isActiveAndEnabled)return false;
-            if(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready&&State!=ExperimentState.Stored)return false;
+            if(!SaveReady||(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready&&State!=ExperimentState.Stored&&State!=ExperimentState.Viewing))return false;
             surface.SetScanner(!surface.ScannerEnabled);RefreshScannerOutlines(pointer.GameplayCamera);
             RefreshView();return true;
         }
@@ -227,17 +229,17 @@ namespace SqueakSqueak.Experiment
         }
         public bool RequestStore(long expectedRound)
         {
-            if(!isActiveAndEnabled)return false;
+            if(!isActiveAndEnabled||!SaveReady||PersistenceBusy)return false;
             EvaluateGoal();
             if(expectedRound!=RoundId||State!=ExperimentState.Ready)return false;
             resumeState=State;State=ExperimentState.StoreConfirmation;DialogRoundId=RoundId;SetWork(false);
-            view.ShowDialog("현재 표면을 시험용 메모리에 보관할까요?\n종료 시 사라집니다.");return true;
+            view.ShowDialog("현재 표면을 파일에 보관할까요?\n보관 이후에는 관찰만 할 수 있습니다.");return true;
         }
         public bool RequestLeave()
         {
-            if(!isActiveAndEnabled)return false;
+            if(!isActiveAndEnabled||!SaveReady)return false;
             if(!IsActive)return false;
-            if(State==ExperimentState.Stored||State==ExperimentState.Failed){Leave();return true;}
+            if(State==ExperimentState.Stored||State==ExperimentState.Viewing||State==ExperimentState.Failed){Leave();return true;}
             if(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready)return false;
             pendingLeave=true;pendingEntry=false;resumeState=State;DialogRoundId=RoundId;State=ExperimentState.DiscardConfirmation;
             SetWork(false);view.ShowDialog("미보관 작업을 폐기하고 실험을 종료할까요?");return true;
@@ -251,7 +253,8 @@ namespace SqueakSqueak.Experiment
                 pendingEntry=false;legacyStage.CancelAbandon(legacyStage.RoundId);view.HideDialog();return true;
             }
             if(expectedRound!=RoundId||expectedRound!=DialogRoundId||!IsDialog(State))return false;
-            State=resumeState;LastError=null;view.HideDialog();SetWork(State==ExperimentState.Cleaning||State==ExperimentState.Ready,State==ExperimentState.Stored);RefreshView();return true;
+            State=resumeState;if(State!=ExperimentState.SaveFailed&&!generalFailed)LastError=null;
+            view.HideDialog();RestoreInput();RefreshView();RestoreErrorDialog();return true;
         }
         public bool ConfirmDialog(long expectedRound)
         {
@@ -261,30 +264,25 @@ namespace SqueakSqueak.Experiment
             if(expectedRound!=RoundId||expectedRound!=DialogRoundId||!IsDialog(State))return false;
             if(State==ExperimentState.StoreConfirmation)
             {
-                if(stored.Count>=maximumStoredResults){LastError="시험용 메모리 보관함이 가득 찼습니다. 기존 결과는 유지됩니다.";view.ShowDialog(LastError+"\n취소하여 작업으로 돌아갈 수 있습니다.");return false;}
-                var a=new float[dirt.Length];for(var i=0;i<a.Length;i++)a[i]=dirt[i].CurrentDurability;
-                CurrentResult=new ExperimentSnapshot(RoundId,CurrentCoin.Id,CurrentCoin.ReactionProfile.Id,definition.LayoutId,surface.SurfaceMask,a,tracker.ElapsedSeconds);
-                stored.Add(CurrentResult);tracker.StopTiming();State=ExperimentState.Stored;view.HideDialog();SetWork(false,true);RefreshView();ResultStored?.Invoke(CurrentResult);return true;
+                return BeginStore();
             }
             if(State==ExperimentState.QuitConfirmation)
             {
-                quitApproved=true;view.HideDialog();
-                #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying=false;
-                #else
-                Application.Quit();
-                #endif
+                ConfirmAppQuit();
                 return true;
             }
             view.HideDialog();if(pendingLeave)Leave();else StartCoin(pendingCoin);return true;
         }
         public bool RequestQuit()
         {
+            if(!isActiveAndEnabled)return false;
+            if(PersistenceBusy){quitAfterOperation=true;view.ShowSystemDialog("저장 파일 작업을 마친 뒤 종료를 확인합니다.",null,null);return true;}
+            if(!IsActive){SetWork(false);legacyStage.enabled=false;view.ShowSystemDialog("미보관 청소는 저장되지 않습니다.\n보관된 결과와 일반 접근 정보는 유지됩니다. 종료할까요?",ConfirmAppQuit,()=>{view.HideDialog();RestoreInput();RestoreErrorDialog();},"종료","돌아가기");return true;}
             if(!IsActive||IsDialog(State)||State==ExperimentState.Preparing)return false;
             resumeState=State;State=ExperimentState.QuitConfirmation;DialogRoundId=RoundId;SetWork(false);
-            view.ShowDialog("미보관 작업은 저장되지 않습니다.\n시험용 메모리 보관도 종료 시 사라집니다.\n종료할까요?");return true;
+            view.ShowDialog("미보관 작업은 저장되지 않습니다.\n파일에 보관된 결과는 유지됩니다.\n종료할까요?");return true;
         }
-        private bool WantsToQuit(){if(!IsActive||quitApproved)return true;RequestQuit();return false;}
+        private bool WantsToQuit(){if(quitApproved&&!PersistenceBusy)return true;RequestQuit();return false;}
         private static bool IsDialog(ExperimentState state)=>state==ExperimentState.StoreConfirmation||state==ExperimentState.DiscardConfirmation||state==ExperimentState.QuitConfirmation;
 
         private void Leave()
@@ -312,7 +310,7 @@ namespace SqueakSqueak.Experiment
         private void RefreshView()
         {
             if(view==null)return;
-            view.Refresh(IsActive,State,goalAnnounced?100:(IsActive?Progress.DisplayPercent:0),tracker.ElapsedSeconds,
+            view.Refresh(IsActive,State,goalAnnounced?100:(IsActive?Progress.DisplayPercent:0),State==ExperimentState.Viewing?CurrentResult.ElapsedSeconds:tracker.ElapsedSeconds,
                 stored.Count,maximumStoredResults,CurrentCoin?.DisplayName,selection.CurrentTool,ScannerEnabled,definition.Tools,
                 goalAnnounced?1:(IsActive?(float)Progress.Value:0));
         }
@@ -342,17 +340,18 @@ namespace SqueakSqueak.Experiment
             if(surface!=null)surface.TreatmentApplied-=OnTreatment;if(selection!=null)selection.ToolSelected-=OnToolSelected;
             view?.Dispose();if(dirtRoot!=null)Destroy(dirtRoot);if(outlineMaterial!=null)Destroy(outlineMaterial);
             if(treatmentAudio!=null)Destroy(treatmentAudio.gameObject);if(dropClip!=null)Destroy(dropClip);
+            DisposePersistence();
         }
         private void OnDisable()
         {
-            if(IsActive&&view!=null)SetWork(false);
+            if(view!=null){SetWork(false);if(legacyStage!=null)legacyStage.enabled=false;}
             view?.SetSuspended(true);
         }
         private void OnEnable()
         {
             if(view==null)return;
             view.SetSuspended(false);
-            if(IsActive)SetWork(State==ExperimentState.Cleaning||State==ExperimentState.Ready,State==ExperimentState.Stored);
+            RestoreInput();
             RefreshView();
         }
     }

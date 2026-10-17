@@ -47,5 +47,22 @@ namespace SqueakSqueak.Experiment
             FrontPolish=Array.AsReadOnly(fp);BackPolish=Array.AsReadOnly(bp);
             FrontSoftened=Array.AsReadOnly(fs);BackSoftened=Array.AsReadOnly(bs);
         }
+
+        /// <summary>검증된 저장 경계에서 ID와 원본 수치를 보존합니다. 배열은 공유하지 않습니다.</summary>
+        public static ExperimentSnapshot Restore(string id,long round,string coin,string reaction,string layout,int resolution,float elapsed,double initialSum,
+            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs)
+            => new(id,round,coin,reaction,layout,resolution,elapsed,initialSum,a,fd,bd,fp,bp,fs,bs);
+
+        private ExperimentSnapshot(string id,long round,string coin,string reaction,string layout,int resolution,float elapsed,double initialSum,
+            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs)
+        {
+            if(!Guid.TryParseExact(id,"N",out _)||round<=0||resolution<4||resolution>1024||
+                a==null||fd?.Length!=resolution*resolution||bd?.Length!=fd.Length||fp?.Length!=fd.Length||bp?.Length!=fd.Length||fs?.Length!=fd.Length||bs?.Length!=fd.Length)
+                throw new ArgumentException("Invalid restored snapshot shape/identity.");
+            ResultId=id;RoundId=round;CoinId=coin;ReactionId=reaction;LayoutId=layout;Resolution=resolution;ElapsedSeconds=elapsed;InitialDirtSum=initialSum;
+            A=Array.AsReadOnly((float[])a.Clone());FrontDirt=Array.AsReadOnly((float[])fd.Clone());BackDirt=Array.AsReadOnly((float[])bd.Clone());
+            FrontPolish=Array.AsReadOnly((float[])fp.Clone());BackPolish=Array.AsReadOnly((float[])bp.Clone());
+            FrontSoftened=Array.AsReadOnly((bool[])fs.Clone());BackSoftened=Array.AsReadOnly((bool[])bs.Clone());
+        }
     }
 }

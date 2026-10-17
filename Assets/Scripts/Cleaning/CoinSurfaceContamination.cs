@@ -66,6 +66,9 @@ namespace SqueakSqueak.Cleaning
         public bool ProcessingAllowed { get; private set; } = true;
         public CleaningReactionProfile ReactionProfile { get; private set; }
         public bool ScannerEnabled { get; private set; }
+        public Color SaveDirtColor => dirtColor;
+        public float SaveDirtySmoothness => dirtySmoothness;
+        public float SaveMaximumSmoothness => maximumSmoothness;
         private long appliedDropFrame = -1;
         public event Action<CoinSurfaceContact> TreatmentApplied;
 
@@ -272,7 +275,22 @@ namespace SqueakSqueak.Cleaning
             }
         }
 
-        private Texture2D CreateDirtMask(string face) => new(surfaceMaskResolution, surfaceMaskResolution,
+        /// <summary>차단된 열람 상태에 독립 CPU 원본과 그 해상도의 텍스처를 연결합니다.</summary>
+        public void RestoreMask(CoinSurfaceMaskData data)
+        {
+            if(ProcessingAllowed||data==null)throw new InvalidOperationException("Restore requires a blocked surface and independent mask.");
+            ReleaseSurfaceMasks();
+            try
+            {
+                SurfaceMask=data;maskUploadPixels=new Color32[data.TexelCount];
+                if(ReactionProfile!=null)floatUploadPixels=new Color[data.TexelCount];
+                FrontDirtMask=CreateDirtMask("Front");BackDirtMask=CreateDirtMask("Back");
+                UploadSurfaceMasks();ApplyVisuals();
+            }
+            catch{ReleaseSurfaceMasks();throw;}
+        }
+
+        private Texture2D CreateDirtMask(string face) => new(SurfaceMask.Resolution, SurfaceMask.Resolution,
             ReactionProfile != null ? TextureFormat.RGBAHalf : TextureFormat.RGBA32, false, true)
         {
             name = "SqueakSqueak.BMask." + face,

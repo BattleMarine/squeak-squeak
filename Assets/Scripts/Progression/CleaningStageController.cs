@@ -39,13 +39,27 @@ namespace SqueakSqueak.Progression
         public long RoundId { get; private set; }
         public string LastError { get; private set; }
         public int ActiveDirtCount => currentDirt.Length;
+        public ProgressionCatalog Catalog => catalog;
+        public StageAccessContext Access => access;
+        public event Action AccessChanged;
         public event Action<CleaningStageState> StateChanged;
         public event Action<string, long> StageRoundCompleted;
 
         private void Start()
         {
+            if(initialized)return;
             if (!TryInitializeRuntime())
             { Debug.LogError("Stage initialization failed: " + LastError, this); enabled = false; }
+        }
+
+        /// <summary>저장 로드 후 한 번만 접근 정보로 초기화합니다. 청소 중 상태는 복원하지 않습니다.</summary>
+        public bool TryInitializeFromAccess(StageAccessContext context,string stageId)
+        {
+            if(initialized||!isActiveAndEnabled||!DependenciesValid())return false;
+            BlockProcessing();
+            if(context==null||!context.Validate(catalog,out _))return Fail("저장 접근 정보가 유효하지 않습니다.");
+            access=context;initialized=true;Subscribe();
+            return TryStartStage(stageId,RoundId);
         }
 
         private bool TryInitializeRuntime()
@@ -132,6 +146,7 @@ namespace SqueakSqueak.Progression
             if (!context.Validate(catalog, out var error)) return Fail(error);
             access = context;
             LastError = null;
+            AccessChanged?.Invoke();
             return true;
         }
 
