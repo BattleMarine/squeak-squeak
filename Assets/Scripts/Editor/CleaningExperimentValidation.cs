@@ -124,7 +124,7 @@ namespace SqueakSqueak.EditorValidation
                 Check(Enumerable.Range(0,surface.SurfaceMask.TexelCount).All(i=>!surface.SurfaceMask.IsSoftened(CoinSurfaceFace.Back,i)),"실제 반대면 불변",ref checks);
                 var afterTreatment=surface.SurfaceMask.Revision;pointer.ResetViewToInitialState();
                 Check(surface.SurfaceMask.Revision==afterTreatment&&surface.SurfaceMask.CurrentDirtSum==sum,"F 풀림/오염 보존",ref checks);
-                var elapsed=tracker.ElapsedSeconds;c.enabled=false;
+                c.enabled=false;var elapsed=tracker.ElapsedSeconds; // pause 경계까지 합산된 값을 기준으로 재개 보존을 검사합니다.
                 Check(!pointer.enabled&&!cleaner.ProcessingAllowed&&!surface.ProcessingAllowed&&tracker.IsTimingPaused&&!c.SelectTool(0),"실험 소유자 비활성 입력/시간 차단",ref checks);
                 c.enabled=true;Check(pointer.enabled&&!tracker.IsTimingPaused&&tracker.ElapsedSeconds==elapsed,"재활성 기존 판 재개",ref checks);
                 foreach(var d in c.Dirt)d.ApplyCleaning(100);

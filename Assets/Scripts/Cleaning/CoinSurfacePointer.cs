@@ -86,6 +86,7 @@ namespace SqueakSqueak.Cleaning
         public CoinSurfaceContact CurrentSurfaceContact { get; private set; }
 
         public Bounds SurfaceLocalBounds => surfaceLocalBounds;
+        public Camera GameplayCamera => gameplayCamera;
         public Matrix4x4 SurfaceLocalToWorldMatrix => surfaceMeshCollider != null
             ? surfaceMeshCollider.transform.localToWorldMatrix : default;
         public event Action ContactInvalidated;
@@ -292,6 +293,12 @@ namespace SqueakSqueak.Cleaning
 
         private bool UpdateRotation()
         {
+            if (!Application.isFocused)
+            {
+                IsRotating = false;
+                ClearSurfaceHit();
+                return false;
+            }
             if (IsRotating)
             {
                 if (!rotateCoinAction.IsPressed())
@@ -315,18 +322,13 @@ namespace SqueakSqueak.Cleaning
 
         private bool TryBeginRotation(Vector2 screenPosition)
         {
-            if (IsPointerOverUi)
+            if (!isActiveAndEnabled || !Application.isFocused || IsPointerOverUi ||
+                !gameplayCamera.pixelRect.Contains(screenPosition))
             {
                 return false;
             }
 
-            // 중클릭이 들어온 현재 프레임의 포인터 위치를 기준으로 회전 시작을 판정한다.
-            UpdateSurfaceFromScreenPosition(screenPosition);
-            if (!HasSurfaceHit)
-            {
-                return false;
-            }
-
+            // 회전은 동전 접촉이 아닌 UI 밖 게임 화면에서 시작합니다.
             IsRotating = true;
             ApplyRotation(pointerDeltaAction.ReadValue<Vector2>());
             ClearSurfaceHit();

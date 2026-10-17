@@ -75,6 +75,7 @@ namespace SqueakSqueak.Experiment
             surface.TreatmentApplied += OnTreatment;
             selection.ToolSelected += OnToolSelected;
             Application.wantsToQuit += WantsToQuit;
+            RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
             RefreshView();
         }
 
@@ -203,8 +204,26 @@ namespace SqueakSqueak.Experiment
         {
             if(!isActiveAndEnabled)return false;
             if(State!=ExperimentState.Cleaning&&State!=ExperimentState.Ready&&State!=ExperimentState.Stored)return false;
-            surface.SetScanner(!surface.ScannerEnabled);foreach(var line in outlines)if(line!=null)line.enabled=surface.ScannerEnabled;
+            surface.SetScanner(!surface.ScannerEnabled);RefreshScannerOutlines(pointer.GameplayCamera);
             RefreshView();return true;
+        }
+
+        private void OnBeginCameraRendering(ScriptableRenderContext _, Camera camera) => RefreshScannerOutlines(camera);
+
+        private void RefreshScannerOutlines(Camera camera)
+        {
+            if(coinMesh==null)return; // 씬 종료에서 참조 대상이 먼저 파괴될 수 있습니다.
+            // 깊이 검사만으로는 실루엣 밖으로 나온 반대면 원을 숨길 수 없습니다.
+            var show=isActiveAndEnabled&&IsActive&&surface.ScannerEnabled&&camera!=null;
+            var normalMatrix=coinMesh.transform.localToWorldMatrix.inverse.transpose;
+            for(var i=0;i<outlines.Length;i++)
+            {
+                var line=outlines[i];if(line==null)continue;
+                var sign=definition.Placements[i].Face==CoinSurfaceFace.Front?1f:-1f;
+                var normal=normalMatrix.MultiplyVector(Vector3.up*sign).normalized;
+                var towardCamera=camera==null?Vector3.zero:(camera.orthographic?-camera.transform.forward:camera.transform.position-dirt[i].transform.position).normalized;
+                line.enabled=show&&!dirt[i].IsRemoved&&Vector3.Dot(normal,towardCamera)>.0001f;
+            }
         }
         public bool RequestStore(long expectedRound)
         {
@@ -319,6 +338,7 @@ namespace SqueakSqueak.Experiment
         private void OnDestroy()
         {
             Application.wantsToQuit-=WantsToQuit;
+            RenderPipelineManager.beginCameraRendering-=OnBeginCameraRendering;
             if(surface!=null)surface.TreatmentApplied-=OnTreatment;if(selection!=null)selection.ToolSelected-=OnToolSelected;
             view?.Dispose();if(dirtRoot!=null)Destroy(dirtRoot);if(outlineMaterial!=null)Destroy(outlineMaterial);
             if(treatmentAudio!=null)Destroy(treatmentAudio.gameObject);if(dropClip!=null)Destroy(dropClip);
