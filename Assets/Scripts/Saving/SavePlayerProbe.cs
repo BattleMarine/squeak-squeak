@@ -15,7 +15,7 @@ using SqueakSqueak.Progression;
 namespace SqueakSqueak.Saving
 {
     /// <summary>검증 define 전용 probe. 정식 Player에는 클래스/경로 override/합성 청소가 포함되지 않습니다.</summary>
-    public sealed class SavePlayerProbe:MonoBehaviour
+    public sealed partial class SavePlayerProbe:MonoBehaviour
     {
         public static string IsolatedDirectory {get;private set;}
         public static string LastReport {get;private set;}
@@ -67,6 +67,12 @@ namespace SqueakSqueak.Saving
             c=FindFirstObjectByType<CleaningExperimentController>();surface=FindFirstObjectByType<CoinSurfaceContamination>();pointer=FindFirstObjectByType<CoinSurfacePointer>();
             tracker=FindFirstObjectByType<CleaningProgressTracker>();stage=FindFirstObjectByType<CleaningStageController>();
             Check(c!=null&&c.SaveDirectory==directory,"isolated product path");
+            if(phase=="finalization-seed"||phase=="finalization-reload")
+            {
+                var work=RunFinalization();
+                while(work.MoveNext())yield return work.Current;
+                yield break;
+            }
             if(phase=="blocked")
             {
                 while(c.PersistenceBusy)yield return null;
@@ -325,7 +331,7 @@ namespace SqueakSqueak.Saving
         private static void Click(string text)=>FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(b=>b.interactable&&b.GetComponentInChildren<UnityEngine.UI.Text>()?.text==text).onClick.Invoke();
         private void Finish(string result)
         {
-            if(finished)return;finished=true;LastReport=result;Directory.CreateDirectory(directory);File.WriteAllLines(Path.Combine(directory,"probe-"+phase+".txt"),new[]{result}.Concat(checks));Debug.Log(result);
+            if(finished)return;finished=true;ReleaseFinalizationGate();LastReport=result;Directory.CreateDirectory(directory);File.WriteAllLines(Path.Combine(directory,"probe-"+phase+".txt"),new[]{result}.Concat(checks));Debug.Log(result);
             if(!editorRun){if(c!=null)c.ApproveValidationQuit();Application.Quit(result.StartsWith("PASS",StringComparison.Ordinal)?0:1);}
         }
     }
