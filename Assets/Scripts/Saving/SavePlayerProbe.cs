@@ -67,6 +67,12 @@ namespace SqueakSqueak.Saving
             c=FindFirstObjectByType<CleaningExperimentController>();surface=FindFirstObjectByType<CoinSurfaceContamination>();pointer=FindFirstObjectByType<CoinSurfacePointer>();
             tracker=FindFirstObjectByType<CleaningProgressTracker>();stage=FindFirstObjectByType<CleaningStageController>();
             Check(c!=null&&c.SaveDirectory==directory,"isolated product path");
+            if(phase=="integration-seed"||phase=="integration-reload")
+            {
+                var integration=RunIntegration();
+                while(integration.MoveNext())yield return integration.Current;
+                yield break;
+            }
             if(phase=="finalization-seed"||phase=="finalization-reload")
             {
                 var work=RunFinalization();
@@ -331,7 +337,7 @@ namespace SqueakSqueak.Saving
         private static void Click(string text)=>FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(b=>b.interactable&&b.GetComponentInChildren<UnityEngine.UI.Text>()?.text==text).onClick.Invoke();
         private void Finish(string result)
         {
-            if(finished)return;finished=true;ReleaseFinalizationGate();LastReport=result;Directory.CreateDirectory(directory);File.WriteAllLines(Path.Combine(directory,"probe-"+phase+".txt"),new[]{result}.Concat(checks));Debug.Log(result);
+            if(finished)return;finished=true;ReleaseFinalizationGate();ReleaseIntegrationGate();LastReport=result;Directory.CreateDirectory(directory);File.WriteAllLines(Path.Combine(directory,"probe-"+phase+".txt"),new[]{result}.Concat(checks));Debug.Log(result);
             if(!editorRun){if(c!=null)c.ApproveValidationQuit();Application.Quit(result.StartsWith("PASS",StringComparison.Ordinal)?0:1);}
         }
     }
