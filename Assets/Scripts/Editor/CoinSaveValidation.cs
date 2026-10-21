@@ -125,7 +125,7 @@ namespace SqueakSqueak.EditorValidation
             var unknown=Rewrite(bytes,p=>ReplaceText(p,"rb-coin-m1","xx-coin-m1"));Blocked(unknown,bytes,SaveIssue.UnknownDefinition,"unknown-id");
             var changed=Rewrite(bytes,p=>ReplaceText(p,one.definitionFingerprint,new string('a',64)));Blocked(changed,bytes,SaveIssue.DefinitionChanged,"changed-definition");
             Blocked(bytes,changed,SaveIssue.DefinitionChanged,"changed-backup");Blocked(bytes,unknown,SaveIssue.UnknownDefinition,"unknown-backup");
-            var innerFuture=Rewrite(bytes,p=>Int(p,16,2));Blocked(innerFuture,bytes,SaveIssue.Unsupported,"future-result");
+            var innerFuture=Rewrite(bytes,p=>Int(p,16,CoinSaveLimits.SideResultVersion+1));Blocked(innerFuture,bytes,SaveIssue.Unsupported,"future-result");
             var oversize=(byte[])bytes.Clone();Int(oversize,16,CoinSaveLimits.MaximumDecodedBytes+1);Blocked(oversize,null,SaveIssue.Corrupt,"oversize-header");
             var largeDirectory=Area("oversize-file");var largeFile=Path.Combine(largeDirectory,CompletedCoinStore.FileName);
             using(var file=new FileStream(largeFile,FileMode.CreateNew))file.SetLength(CoinSaveLimits.MaximumFileBytes+1L);

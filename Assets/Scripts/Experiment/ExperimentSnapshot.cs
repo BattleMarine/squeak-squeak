@@ -23,6 +23,10 @@ namespace SqueakSqueak.Experiment
         public IReadOnlyList<float> BackPolish { get; }
         public IReadOnlyList<bool> FrontSoftened { get; }
         public IReadOnlyList<bool> BackSoftened { get; }
+        public IReadOnlyList<float> SideDirt { get; }
+        public IReadOnlyList<float> SidePolish { get; }
+        public IReadOnlyList<bool> SideSoftened { get; }
+        public bool HasSide=>SideDirt.Count>0;
 
         public ExperimentSnapshot(long round, string coin, string reaction, string layout, CoinSurfaceMaskData mask,
             IReadOnlyList<float> a, float elapsed)
@@ -46,15 +50,18 @@ namespace SqueakSqueak.Experiment
             A=Array.AsReadOnly(acopy);FrontDirt=Array.AsReadOnly(fd);BackDirt=Array.AsReadOnly(bd);
             FrontPolish=Array.AsReadOnly(fp);BackPolish=Array.AsReadOnly(bp);
             FrontSoftened=Array.AsReadOnly(fs);BackSoftened=Array.AsReadOnly(bs);
+            var sd=new float[mask.SideTexelCount];var sp=new float[sd.Length];var ss=new bool[sd.Length];
+            for(var i=0;i<sd.Length;i++){sd[i]=mask.GetDirt(CoinSurfaceFace.Side,i);sp[i]=mask.GetPolish(CoinSurfaceFace.Side,i);ss[i]=mask.IsSoftened(CoinSurfaceFace.Side,i);}
+            SideDirt=Array.AsReadOnly(sd);SidePolish=Array.AsReadOnly(sp);SideSoftened=Array.AsReadOnly(ss);
         }
 
         /// <summary>검증된 저장 경계에서 ID와 원본 수치를 보존합니다. 배열은 공유하지 않습니다.</summary>
         public static ExperimentSnapshot Restore(string id,long round,string coin,string reaction,string layout,int resolution,float elapsed,double initialSum,
-            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs)
-            => new(id,round,coin,reaction,layout,resolution,elapsed,initialSum,a,fd,bd,fp,bp,fs,bs);
+            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs,float[] sd=null,float[] sp=null,bool[] ss=null)
+            => new(id,round,coin,reaction,layout,resolution,elapsed,initialSum,a,fd,bd,fp,bp,fs,bs,sd,sp,ss);
 
         private ExperimentSnapshot(string id,long round,string coin,string reaction,string layout,int resolution,float elapsed,double initialSum,
-            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs)
+            float[] a,float[] fd,float[] bd,float[] fp,float[] bp,bool[] fs,bool[] bs,float[] sd,float[] sp,bool[] ss)
         {
             if(!Guid.TryParseExact(id,"N",out _)||round<=0||resolution<4||resolution>1024||
                 a==null||fd?.Length!=resolution*resolution||bd?.Length!=fd.Length||fp?.Length!=fd.Length||bp?.Length!=fd.Length||fs?.Length!=fd.Length||bs?.Length!=fd.Length)
@@ -63,6 +70,9 @@ namespace SqueakSqueak.Experiment
             A=Array.AsReadOnly((float[])a.Clone());FrontDirt=Array.AsReadOnly((float[])fd.Clone());BackDirt=Array.AsReadOnly((float[])bd.Clone());
             FrontPolish=Array.AsReadOnly((float[])fp.Clone());BackPolish=Array.AsReadOnly((float[])bp.Clone());
             FrontSoftened=Array.AsReadOnly((bool[])fs.Clone());BackSoftened=Array.AsReadOnly((bool[])bs.Clone());
+            sd??=Array.Empty<float>();sp??=Array.Empty<float>();ss??=Array.Empty<bool>();
+            if((sd.Length!=0&&sd.Length!=resolution*Math.Max(4,resolution/16))||sp.Length!=sd.Length||ss.Length!=sd.Length)throw new ArgumentException("Invalid restored side shape");
+            SideDirt=Array.AsReadOnly((float[])sd.Clone());SidePolish=Array.AsReadOnly((float[])sp.Clone());SideSoftened=Array.AsReadOnly((bool[])ss.Clone());
         }
     }
 }

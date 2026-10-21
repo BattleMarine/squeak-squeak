@@ -73,6 +73,11 @@ namespace SqueakSqueak.Saving
             w.Write(r.roundId);w.Write(r.resolution);w.Write(r.elapsedSeconds);w.Write(r.initialDirtSum);w.Write(r.a.Length);
             foreach(var a in r.a)w.Write(a);foreach(var a in new[]{r.frontDirt,r.backDirt,r.frontPolish,r.backPolish})foreach(var v in a)w.Write(v);
             foreach(var array in new[]{r.frontSoftened,r.backSoftened})for(var i=0;i<array.Length;i+=8){byte b=0;for(var bit=0;bit<8&&i+bit<array.Length;bit++)if(array[i+bit])b|=(byte)(1<<bit);w.Write(b);}
+            if(r.formatVersion==CoinSaveLimits.SideResultVersion)
+            {
+                foreach(var a in new[]{r.sideDirt,r.sidePolish})foreach(var v in a)w.Write(v);
+                for(var i=0;i<r.sideSoftened.Length;i+=8){byte b=0;for(var bit=0;bit<8&&i+bit<r.sideSoftened.Length;bit++)if(r.sideSoftened[i+bit])b|=(byte)(1<<bit);w.Write(b);}
+            }
         }
         public bool SameResult(SavedCoinDto a,SavedCoinDto b)
         {using var left=new MemoryStream();using var right=new MemoryStream();using(var w=new BinaryWriter(left,System.Text.Encoding.UTF8,true))WriteResult(w,a);using(var w=new BinaryWriter(right,System.Text.Encoding.UTF8,true))WriteResult(w,b);return left.ToArray().SequenceEqual(right.ToArray());}
@@ -82,7 +87,7 @@ namespace SqueakSqueak.Saving
             CoinSaveValidator.Require(count>=0&&count<=CoinSaveLimits.MaximumResults,"Invalid result count");dto.results=new SavedCoinDto[count];
             for(var i=0;i<count;i++)
             {
-                var v=new SavedCoinDto{formatVersion=r.ReadInt32(),coinVersion=r.ReadInt32(),reactionVersion=r.ReadInt32(),layoutVersion=r.ReadInt32()};CoinSaveValidator.Version(v.formatVersion);
+                var v=new SavedCoinDto{formatVersion=r.ReadInt32(),coinVersion=r.ReadInt32(),reactionVersion=r.ReadInt32(),layoutVersion=r.ReadInt32()};CoinSaveValidator.ResultVersion(v.formatVersion);
                 v.resultId=Text(r);v.coinId=Text(r);v.reactionId=Text(r);v.layoutId=Text(r);v.renderRevision=Text(r);v.definitionFingerprint=Text(r);
                 v.roundId=r.ReadInt64();v.resolution=r.ReadInt32();v.elapsedSeconds=r.ReadSingle();v.initialDirtSum=r.ReadDouble();var aCount=r.ReadInt32();
                 CoinSaveValidator.Require(CoinSaveLimits.ResolutionValid(v.resolution)&&aCount>=0&&aCount<=64,"Invalid resolution/A count");var n=v.resolution*v.resolution;
@@ -92,6 +97,14 @@ namespace SqueakSqueak.Saving
                 v.frontDirt=arrays[0];v.backDirt=arrays[1];v.frontPolish=arrays[2];v.backPolish=arrays[3];
                 var soft=new bool[2][];for(var face=0;face<2;face++){soft[face]=new bool[n];for(var j=0;j<n;j+=8){var b=r.ReadByte();for(var bit=0;bit<8&&j+bit<n;bit++)soft[face][j+bit]=(b&(1<<bit))!=0;}}
                 v.frontSoftened=soft[0];v.backSoftened=soft[1];dto.results[i]=v;
+                if(v.formatVersion==CoinSaveLimits.SideResultVersion)
+                {
+                    var sideN=v.resolution*Math.Max(4,v.resolution/16);
+                    CoinSaveValidator.Require((long)sideN*8+(sideN+7)/8<=r.BaseStream.Length-r.BaseStream.Position,"Truncated side arrays");
+                    v.sideDirt=new float[sideN];v.sidePolish=new float[sideN];v.sideSoftened=new bool[sideN];
+                    foreach(var array in new[]{v.sideDirt,v.sidePolish})for(var j=0;j<sideN;j++)array[j]=r.ReadSingle();
+                    for(var j=0;j<sideN;j+=8){var b=r.ReadByte();for(var bit=0;bit<8&&j+bit<sideN;bit++)v.sideSoftened[j+bit]=(b&(1<<bit))!=0;}
+                }
             }
             return dto;
         }

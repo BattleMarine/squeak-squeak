@@ -44,7 +44,7 @@ namespace SqueakSqueak.Saving
                 Check(c.RequestCoin(n)&&c.State==ExperimentState.Cleaning,"new representative coin "+n);yield return null;
                 FinalRegressionRub(CoinSurfaceFace.Front);PulseFinalizationClock(1);
                 foreach(var dirt in c.Dirt)dirt.ApplyCleaning(100);
-                foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back})for(var i=0;i<surface.SurfaceMask.TexelCount;i++)surface.SurfaceMask.TrySetDirt(face,i,surface.SurfaceMask.GetDirt(face,i)*.04f);
+                foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back,CoinSurfaceFace.Side})for(var i=0;i<surface.SurfaceMask.GetTexelCount(face);i++)surface.SurfaceMask.TrySetDirt(face,i,surface.SurfaceMask.GetDirt(face,i)*.04f);
                 surface.UploadSurfaceMasks();c.EvaluateGoal();var goal=FinalizationSample();
                 Check(c.State==ExperimentState.Ready&&c.CurrentResult==null&&surface.ProcessingAllowed&&!tracker.IsTimingPaused,"goal is not stored and permits continued work "+n);
                 yield return null;FinalRegressionRub(CoinSurfaceFace.Back);PulseFinalizationClock(2);

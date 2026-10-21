@@ -69,9 +69,9 @@ namespace SqueakSqueak.EditorValidation
                         }
                     }
                 }
-                Check(CoinSurfaceMapper.TryMapPoint(baseMatrix, bounds, baseMatrix.MultiplyPoint3x4(Vector3.up),
+                Check(!CoinSurfaceMapper.TryMapPoint(baseMatrix, bounds, baseMatrix.MultiplyPoint3x4(Vector3.up),
                     baseMatrix.inverse.transpose.MultiplyVector(new Vector3(.3f, .954f, 0f)), out var oblique) &&
-                    oblique.Face == CoinSurfaceFace.Side, "혼합 법선의 전치 변환; 회전 전용 변환 오판 방지");
+                    !oblique.IsCleanable, "캡 내부 혼합 법선은 옆면 청소 좌표로 허용하지 않음");
                 foreach (var invalidNormal in new[] { Vector3.zero, new Vector3(float.NaN, 1f, 0f),
                     new Vector3(0f, float.PositiveInfinity, 0f), Vector3.down })
                     Check(!CoinSurfaceMapper.TryMapPoint(baseMatrix, bounds, baseMatrix.MultiplyPoint3x4(Vector3.up),
@@ -166,9 +166,9 @@ namespace SqueakSqueak.EditorValidation
                 Physics.SyncTransforms();
                 hover.Invoke(pointer, new object[] { (Vector2)camera.WorldToScreenPoint(coin.position) });
                 Check(pointer.HasSurfaceHit && pointer.CurrentSurfaceContact.Face == CoinSurfaceFace.Side &&
-                    !pointer.HasCleanableContact && !cursor.IsVisible && !range.enabled, "실제 옆면 hover/커서 사용 불가");
-                Check(!pointer.TryGetToolUseContact(out _), "옆면 B 접촉 API 거부");
-                Check(!CoinSurfaceMapper.IsWithinBrush(baseMatrix, oblique, oblique, .32f), "Side 브러시 거부");
+                    pointer.HasCleanableContact && cursor.IsVisible && range.enabled, "실제 옆면 hover/커서 표시");
+                Check(!pointer.TryGetToolUseContact(out _), "옆면도 LMB/문지르기 승인 없는 접촉은 거부");
+                Check(CoinSurfaceMapper.IsWithinBrush(baseMatrix, pointer.CurrentSurfaceContact, pointer.CurrentSurfaceContact, .32f), "Side 유효 브러시 중심 허용");
                 Check(!CoinSurfaceMapper.TryMapHit(collider, collider.sharedMesh, bounds, default, out _), "미적중 거부");
                 Check(Physics.Raycast(new Ray(new Vector3(3f, 6f, 0f), Vector3.down), out var otherHit, 20f) &&
                     otherHit.collider != collider && !CoinSurfaceMapper.TryMapHit(collider, collider.sharedMesh, bounds, otherHit, out _), "다른 Collider 거부");

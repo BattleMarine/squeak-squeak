@@ -12,6 +12,8 @@ Shader "SqueakSqueak/Coin Surface"
         _ReliefStrength("Visual engraving normal strength", Range(0,0.1)) = 0.035
         [NoScaleOffset] _FrontSurfaceMask("Front: R dirt, G polish, B softened, A valid", 2D) = "black" {}
         [NoScaleOffset] _BackSurfaceMask("Back: R dirt, G polish, B softened, A valid", 2D) = "black" {}
+        [NoScaleOffset] _SideSurfaceMask("Side: R dirt, G polish, B softened, A valid", 2D) = "black" {}
+        [HideInInspector] _HasSideSurface("Side data present",Float)=0
         [HideInInspector] _ExperimentScanner("Experiment scanner", Float) = 0
         _SurfaceBounds("Local center xyz / radius w", Vector) = (0,0,0,0.5)
         _SurfaceHalfHeight("Local half height", Float) = 1
@@ -36,9 +38,11 @@ Shader "SqueakSqueak/Coin Surface"
             half _ReliefStrength;
             half _SurfaceDebug;
             half _ExperimentScanner;
+            half _HasSideSurface;
         CBUFFER_END
         TEXTURE2D(_FrontSurfaceMask); SAMPLER(sampler_FrontSurfaceMask);
         TEXTURE2D(_BackSurfaceMask); SAMPLER(sampler_BackSurfaceMask);
+        TEXTURE2D(_SideSurfaceMask); SAMPLER(sampler_SideSurfaceMask);
         float3 _LightDirection;
         float3 _LightPosition;
         struct Attributes
@@ -85,10 +89,16 @@ Shader "SqueakSqueak/Coin Surface"
             bool front = input.normalOS.y >= 0.999 && abs(local.y - _SurfaceHalfHeight) <= epsilon;
             bool back = input.normalOS.y <= -0.999 && abs(local.y + _SurfaceHalfHeight) <= epsilon;
             face = front ? 1 : (back ? 0 : 0.5);
-            if (!front && !back) return half4(0,0,0,0);
             float2 uv = local.xz / (2 * _SurfaceBounds.w) + 0.5;
-            half4 mask = front ? SAMPLE_TEXTURE2D(_FrontSurfaceMask, sampler_FrontSurfaceMask, uv) :
-                SAMPLE_TEXTURE2D(_BackSurfaceMask, sampler_BackSurfaceMask, uv);
+            // 모든 분기의 반환값을 초기화하고, mip 없는 Point 마스크는 명시적 LOD0으로 읽습니다.
+            half4 mask=half4(0,0,0,0);
+            if(front)mask=SAMPLE_TEXTURE2D_LOD(_FrontSurfaceMask,sampler_FrontSurfaceMask,uv,0);
+            else if(back)mask=SAMPLE_TEXTURE2D_LOD(_BackSurfaceMask,sampler_BackSurfaceMask,uv,0);
+            else if(_HasSideSurface>0.5)
+            {
+                float2 sideUv=float2(frac(atan2(local.z,local.x)/6.28318530718),saturate(local.y/(2*_SurfaceHalfHeight)+0.5));
+                mask=SAMPLE_TEXTURE2D_LOD(_SideSurfaceMask,sampler_SideSurfaceMask,sideUv,0);
+            }
             mask.rgb *= mask.a;
             return mask;
         }
@@ -163,7 +173,7 @@ Shader "SqueakSqueak/Coin Surface"
             surface.metallic = lerp(_Metallic * 0.35, _Metallic, clean);
             surface.smoothness = lerp(lerp(_DirtySmoothness, _Smoothness, clean), _MaximumSmoothness, mask.g);
             surface.smoothness = lerp(surface.smoothness, 0.5, wet * mask.r);
-            if (_ExperimentScanner > 0.5 && face != 0.5 && mask.r > 0)
+            if (_ExperimentScanner > 0.5 && mask.r > 0)
             {
                 half intensity = saturate(mask.r);
                 surface.albedo = lerp(surface.albedo, half3(0.02,0.8,1), intensity);

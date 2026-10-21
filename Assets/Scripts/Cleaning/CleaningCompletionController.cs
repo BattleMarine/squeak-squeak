@@ -90,6 +90,7 @@ namespace SqueakSqueak.Cleaning
             if (!isActiveAndEnabled || !EvaluationAllowed || IsCompleted ||
                 progressTracker.ObjectDirtRemovalRatio < requiredObjectDirtRemovalRatio ||
                 progressTracker.SurfaceDirtRemovalRatio < requiredSurfaceDirtRemovalRatio ||
+                surfaceContamination.SideDirtRemovalRatio < requiredSurfaceDirtRemovalRatio ||
                 progressTracker.Polish < requiredPolish)
             {
                 return false;

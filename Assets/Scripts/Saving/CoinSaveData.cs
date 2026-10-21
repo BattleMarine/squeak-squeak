@@ -7,6 +7,7 @@ namespace SqueakSqueak.Saving
     public static class CoinSaveLimits
     {
         public const int FormatVersion=1, DefinitionVersion=1, MaximumResults=16;
+        public const int SideResultVersion=2;
         public const int MinimumResolution=16, MaximumResolution=256;
         public const int MaximumDecodedBytes=24*1024*1024, MaximumFileBytes=32*1024*1024;
         public static bool ResolutionValid(int value)=>value>=MinimumResolution&&value<=MaximumResolution&&(value&(value-1))==0;
@@ -23,23 +24,26 @@ namespace SqueakSqueak.Saving
         public double initialDirtSum;
         public float[] a,frontDirt,backDirt,frontPolish,backPolish;
         public bool[] frontSoftened,backSoftened;
+        public float[] sideDirt=Array.Empty<float>(),sidePolish=Array.Empty<float>();
+        public bool[] sideSoftened=Array.Empty<bool>();
 
         public static SavedCoinDto FromSnapshot(ExperimentSnapshot source,CoinSaveDefinitionCatalog definitions)
         {
             if(source==null)throw new ArgumentNullException(nameof(source));
             var contract=definitions.Get(source.CoinId);
-            var dto=new SavedCoinDto{formatVersion=CoinSaveLimits.FormatVersion,coinVersion=contract.Version,reactionVersion=contract.Version,layoutVersion=contract.Version,
+            var dto=new SavedCoinDto{formatVersion=source.HasSide?CoinSaveLimits.SideResultVersion:CoinSaveLimits.FormatVersion,coinVersion=contract.Version,reactionVersion=contract.Version,layoutVersion=contract.Version,
                 resultId=source.ResultId,roundId=source.RoundId,coinId=source.CoinId,reactionId=source.ReactionId,layoutId=source.LayoutId,
-                renderRevision=contract.RenderRevision,definitionFingerprint=contract.Fingerprint,resolution=source.Resolution,elapsedSeconds=source.ElapsedSeconds,
+                renderRevision=source.HasSide?contract.SideRenderRevision:contract.RenderRevision,definitionFingerprint=source.HasSide?contract.SideFingerprint:contract.Fingerprint,resolution=source.Resolution,elapsedSeconds=source.ElapsedSeconds,
                 initialDirtSum=source.InitialDirtSum,a=source.A.ToArray(),frontDirt=source.FrontDirt.ToArray(),backDirt=source.BackDirt.ToArray(),
-                frontPolish=source.FrontPolish.ToArray(),backPolish=source.BackPolish.ToArray(),frontSoftened=source.FrontSoftened.ToArray(),backSoftened=source.BackSoftened.ToArray()};
+                frontPolish=source.FrontPolish.ToArray(),backPolish=source.BackPolish.ToArray(),frontSoftened=source.FrontSoftened.ToArray(),backSoftened=source.BackSoftened.ToArray(),
+                sideDirt=source.SideDirt.ToArray(),sidePolish=source.SidePolish.ToArray(),sideSoftened=source.SideSoftened.ToArray()};
             new CoinSaveValidator(definitions).ValidateResult(dto);return dto;
         }
         public SavedCoinDto Copy()=>new(){formatVersion=formatVersion,coinVersion=coinVersion,reactionVersion=reactionVersion,layoutVersion=layoutVersion,
             resultId=resultId,coinId=coinId,reactionId=reactionId,layoutId=layoutId,renderRevision=renderRevision,definitionFingerprint=definitionFingerprint,
             roundId=roundId,resolution=resolution,elapsedSeconds=elapsedSeconds,initialDirtSum=initialDirtSum,
             a=(float[])a.Clone(),frontDirt=(float[])frontDirt.Clone(),backDirt=(float[])backDirt.Clone(),frontPolish=(float[])frontPolish.Clone(),backPolish=(float[])backPolish.Clone(),
-            frontSoftened=(bool[])frontSoftened.Clone(),backSoftened=(bool[])backSoftened.Clone()};
+            frontSoftened=(bool[])frontSoftened.Clone(),backSoftened=(bool[])backSoftened.Clone(),sideDirt=(float[])sideDirt.Clone(),sidePolish=(float[])sidePolish.Clone(),sideSoftened=(bool[])sideSoftened.Clone()};
     }
     [Serializable] public sealed class CompletedCoinLibraryDto
     {

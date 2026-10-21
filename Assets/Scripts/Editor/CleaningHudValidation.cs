@@ -113,7 +113,7 @@ namespace SqueakSqueak.EditorValidation
                 foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back, CoinSurfaceFace.Side, CoinSurfaceFace.Invalid })
                 {
                     SetFace(pointer, face); Refresh();
-                    Check(Label("faceHintText").text.Contains(face == CoinSurfaceFace.Front ? "앞면(태양)" : face == CoinSurfaceFace.Back ? "뒷면(물결)" : face == CoinSurfaceFace.Side ? "옆면" : "두 면"), "면 안내 " + face);
+                    Check(Label("faceHintText").text.Contains(face == CoinSurfaceFace.Front ? "앞면(태양)" : face == CoinSurfaceFace.Back ? "뒷면(물결)" : face == CoinSurfaceFace.Side ? "옆면" : "옆면 모두"), "면 안내 " + face);
                 }
                 Check(Label("nextActionText").text.Contains("작은 솔"), "A 안내");
                 RemoveA(cleaner); Refresh(); Check(Label("nextActionText").text.Contains("마른 천"), "B 안내");
@@ -192,8 +192,8 @@ namespace SqueakSqueak.EditorValidation
         private static void RemoveA(ObjectDirtCleaner cleaner) { foreach (var dirt in Get<ObjectDirt[]>(cleaner, "dirtObjects")) dirt.ApplyCleaning(dirt.CurrentDurability); }
         private static void SetSurface(CoinSurfaceContamination owner, float dirt, float polish)
         {
-            foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back })
-                for (var i = 0; i < owner.SurfaceMask.TexelCount; i++) { owner.SurfaceMask.TrySetDirt(face, i, dirt); owner.SurfaceMask.TrySetPolish(face, i, polish); }
+            foreach (var face in new[] { CoinSurfaceFace.Front, CoinSurfaceFace.Back,CoinSurfaceFace.Side })
+                for (var i = 0; i < owner.SurfaceMask.GetTexelCount(face); i++) { owner.SurfaceMask.TrySetDirt(face, i, dirt); owner.SurfaceMask.TrySetPolish(face, i, polish); }
             owner.UploadSurfaceMasks(); Call(owner, "ApplyVisuals");
         }
         private static void SetFace(CoinSurfacePointer pointer, CoinSurfaceFace face)

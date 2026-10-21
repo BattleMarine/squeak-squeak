@@ -83,15 +83,19 @@ namespace SqueakSqueak.Saving
         private static bool SameProgress(GeneralProgressDto a,GeneralProgressDto b)=>a.catalogId==b.catalogId&&a.selectedStageId==b.selectedStageId&&
             a.ownedToolIds.SequenceEqual(b.ownedToolIds)&&a.completedStageIds.SequenceEqual(b.completedStageIds);
         private static ExperimentSnapshot[] Snapshots(CompletedCoinLibraryDto library)=>library.results.Select(d=>ExperimentSnapshot.Restore(d.resultId,d.roundId,d.coinId,d.reactionId,d.layoutId,
-            d.resolution,d.elapsedSeconds,d.initialDirtSum,d.a,d.frontDirt,d.backDirt,d.frontPolish,d.backPolish,d.frontSoftened,d.backSoftened)).ToArray();
+            d.resolution,d.elapsedSeconds,d.initialDirtSum,d.a,d.frontDirt,d.backDirt,d.frontPolish,d.backPolish,d.frontSoftened,d.backSoftened,d.sideDirt,d.sidePolish,d.sideSoftened)).ToArray();
         public CoinSurfaceMaskData RestoreMask(ExperimentSnapshot value)
         {
-            var mask=Definitions.Get(value.CoinId).InitialMask(value.Resolution);
+            var mask=Definitions.Get(value.CoinId).InitialMask(value.Resolution,value.HasSide);
             for(var i=0;i<mask.TexelCount;i++)
             {
                 mask.TrySetDirt(CoinSurfaceFace.Front,i,value.FrontDirt[i]);mask.TrySetDirt(CoinSurfaceFace.Back,i,value.BackDirt[i]);
                 mask.TrySetPolish(CoinSurfaceFace.Front,i,value.FrontPolish[i]);mask.TrySetPolish(CoinSurfaceFace.Back,i,value.BackPolish[i]);
                 if(value.FrontSoftened[i])mask.TrySoften(CoinSurfaceFace.Front,i);if(value.BackSoftened[i])mask.TrySoften(CoinSurfaceFace.Back,i);
+            }
+            for(var i=0;i<mask.SideTexelCount;i++)
+            {
+                mask.TrySetDirt(CoinSurfaceFace.Side,i,value.SideDirt[i]);mask.TrySetPolish(CoinSurfaceFace.Side,i,value.SidePolish[i]);if(value.SideSoftened[i])mask.TrySoften(CoinSurfaceFace.Side,i);
             }
             return mask;
         }

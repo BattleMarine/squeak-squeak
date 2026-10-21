@@ -41,7 +41,7 @@ namespace SqueakSqueak.EditorValidation
         {
             var c=UnityEngine.Object.FindFirstObjectByType<CleaningExperimentController>();var s=UnityEngine.Object.FindFirstObjectByType<CoinSurfaceContamination>();
             foreach(var d in c.Dirt)d.ApplyCleaning(100);
-            foreach(var f in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back})for(var i=0;i<s.SurfaceMask.TexelCount;i++)s.SurfaceMask.TrySetDirt(f,i,s.SurfaceMask.GetDirt(f,i)*(i%101==0?.01f:0));
+            foreach(var f in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back,CoinSurfaceFace.Side})for(var i=0;i<s.SurfaceMask.GetTexelCount(f);i++)s.SurfaceMask.TrySetDirt(f,i,s.SurfaceMask.GetDirt(f,i)*(i%101==0?.01f:0));
             s.UploadSurfaceMasks();c.EvaluateGoal();
         }
         public static string HoldStoreLock()
@@ -79,12 +79,23 @@ namespace SqueakSqueak.EditorValidation
         private static float[] blockedA;
         private static Quaternion initialRotation,modifiedRotation;
         private static float initialZoom;
+        private static bool sideMode;
+        private static double sideBefore,frontBefore,backBefore;
+        private static bool sideDropMode;
+        private static int sideDrops;
+        private static void OnSideDrop(CoinSurfaceContact contact){if(contact.Face==CoinSurfaceFace.Side)sideDrops++;}
+        public static string BeginSideDrop(string directory)
+        {
+            var result=BeginHeldNotice(directory,true,true);if(!result.StartsWith("Running",StringComparison.Ordinal))return result;
+            sideDropMode=true;sideDrops=0;owner.SelectTool(2);rubSurface.TreatmentApplied+=OnSideDrop;
+            reportPath=Path.Combine(CleaningExperimentController.ValidateIsolatedPath(directory),"side-drop-input.txt");return result;
+        }
         private static string reportPath;
         public static string InputReport {get;private set;}="Not run";
-        public static string BeginHeldNotice(string directory,bool rubAndView=false)
+        public static string BeginHeldNotice(string directory,bool rubAndView=false,bool sideSurface=false)
         {
             if(!Application.isPlaying||!EditorApplication.isPaused||probe!=null)throw new InvalidOperationException("Idle Play/Pause required");
-            rubMode=rubAndView;reportPath=Path.Combine(CleaningExperimentController.ValidateIsolatedPath(directory),rubMode?"rub-ui-F.txt":"held-notice.txt");
+            sideDropMode=false;rubMode=rubAndView;sideMode=sideSurface;reportPath=Path.Combine(CleaningExperimentController.ValidateIsolatedPath(directory),sideMode?"side-rub-ui-F.txt":rubMode?"rub-ui-F.txt":"held-notice.txt");
             owner=UnityEngine.Object.FindFirstObjectByType<CleaningExperimentController>();
             if(owner.State!=ExperimentState.Cleaning&&owner.State!=ExperimentState.Ready)throw new InvalidOperationException("Working round required");
             Resources.FindObjectsOfTypeAll<EditorWindow>().FirstOrDefault(w=>w.GetType().Name=="GameView")?.Focus();
@@ -92,6 +103,7 @@ namespace SqueakSqueak.EditorValidation
             pointer=owner.GetComponent<CoinSurfacePointer>();coin=(Transform)new SerializedObject(pointer).FindProperty("coinTransform").objectReferenceValue;
             rubSurface=UnityEngine.Object.FindFirstObjectByType<CoinSurfaceContamination>();
             pointer.ResetViewToInitialState();initialRotation=coin.rotation;initialZoom=pointer.GameplayCamera.orthographicSize;
+            if(sideMode){coin.rotation=Quaternion.AngleAxis(90,pointer.GameplayCamera.transform.right)*coin.rotation;Physics.SyncTransforms();sideBefore=rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Side);frontBefore=rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Front);backBefore=rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Back);}
             if(rubMode){owner.SelectTool(1);rubBefore=rubSurface.SurfaceMask.CurrentDirtSum;}
             timer=owner.GetComponent<CleaningProgressTracker>();timer.NotifyTreatmentApplied();
             asset=(InputActionAsset)new SerializedObject(pointer).FindProperty("inputActions").objectReferenceValue;
@@ -110,7 +122,13 @@ namespace SqueakSqueak.EditorValidation
             if(probe==null||InputState.currentUpdateType!=InputUpdateType.Dynamic||queued==Time.frameCount)return;
             if(!Application.isFocused){FinishInput("BLOCKED focus lost (not overridden)");return;}
             queued=Time.frameCount;
-            if(rubMode)
+            if(sideDropMode)
+            {
+                position=step==9||step==10?ui:(Vector2)pointer.GameplayCamera.WorldToScreenPoint(coin.position)+new Vector2(step>=11?60:0,0);
+                var left=(step>=1&&step<=4)||(step>=6&&step<=8)||step==10||step==11||step==13||step==14;
+                InputSystem.QueueStateEvent(mouse,new MouseState{position=position,delta=Vector2.zero}.WithButton(MouseButton.Left,left).WithButton(MouseButton.Middle,step==1||step==2));
+            }
+            else if(rubMode)
             {
                 position=step==11?ui:step<=9?(Vector2)pointer.GameplayCamera.WorldToScreenPoint(coin.position)+new Vector2(-30+Mathf.Min(step,8)*10,0):outside;
                 InputSystem.QueueStateEvent(mouse,new MouseState{position=position,delta=position-last}.WithButton(MouseButton.Left,step>=1&&step<=9));
@@ -130,11 +148,40 @@ namespace SqueakSqueak.EditorValidation
             try
             {
                 void Require(bool value,string name){if(!value)throw new InvalidOperationException(name);inputChecks.Add(name);}
+                if(sideDropMode)
+                {
+                    if(step==2)Require(pointer.IsRotating&&sideDrops==0,"MMB+LMB on side never applies droplet");
+                    if(step==4)Require(sideDrops==0,"held LMB after MMB requires release");
+                    if(step==8)Require(sideDrops==1,"fresh side click applies once, held click does not repeat");
+                    if(step==10)Require(pointer.IsPointerOverUi&&sideDrops==1,"UI click cannot apply side drop");
+                    if(step==11)Require(sideDrops==1,"held click returning from UI remains blocked");
+                    if(step==14)
+                    {
+                        Require(sideDrops==2,"release then fresh side click applies a second local drop");
+                        Require(rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Front)==frontBefore&&rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Back)==backBefore,"side drops preserve both cap dirt masks");
+                        FinishInput("PASS checks="+inputChecks.Count+"; actual focused Play frames/virtual Mouse; not OS input\n"+string.Join("\n",inputChecks));return;
+                    }
+                    step++;return;
+                }
                 if(rubMode)
                 {
                     if(step==3)
                     {
                         Require(rubSurface.SurfaceMask.CurrentDirtSum<rubBefore,"positive actual-frame LMB cloth removes B");
+                        if(sideMode)Require(pointer.CurrentSurfaceContact.Face==CoinSurfaceFace.Side&&rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Side)<sideBefore&&rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Front)==frontBefore&&rubSurface.SurfaceMask.GetCurrentDirtSum(CoinSurfaceFace.Back)==backBefore,"real side hit/rub changes only side mask");
+                        if(sideMode)
+                        {
+                            var cursor=UnityEngine.Object.FindFirstObjectByType<SurfaceToolCursor>();var ring=(LineRenderer)new SerializedObject(cursor).FindProperty("rangeRenderer").objectReferenceValue;
+                            var matrix=pointer.SurfaceLocalToWorldMatrix;var bounds=pointer.SurfaceLocalBounds;var center=pointer.CurrentSurfaceContact;var radius=owner.GetComponent<CleaningToolSelection>().CurrentTool.BrushRadius;
+                            var valid=ring.enabled;
+                            for(var i=0;i<ring.positionCount;i++)
+                            {
+                                var local=matrix.inverse.MultiplyPoint3x4(ring.GetPosition(i))-bounds.center;
+                                var projected=CoinSideSurface.Contact(matrix,bounds,Mathf.Atan2(local.z,local.x)/(2*Mathf.PI),local.y/(2*bounds.extents.y)+.5f);
+                                valid&=Mathf.Abs(local.y)<=bounds.extents.y+1e-4f&&CoinSideSurface.Distance(matrix,center,projected)<=radius+1e-4f;
+                            }
+                            Require(valid,"curved side cursor ring fits world radius and height boundaries");
+                        }
                         owner.RequestLibrary();blockedDirt=rubSurface.SurfaceMask.CurrentDirtSum;blockedA=owner.Dirt.Select(x=>x.CurrentDurability).ToArray();noticeSeconds=timer.ElapsedSeconds;
                     }
                     if(step==8)
@@ -180,6 +227,7 @@ namespace SqueakSqueak.EditorValidation
         private static void FinishInput(string value)
         {
             InputReport=value;Directory.CreateDirectory(Path.GetDirectoryName(reportPath));File.WriteAllText(reportPath,value);
+            if(rubSurface!=null)rubSurface.TreatmentApplied-=OnSideDrop;
             InputSystem.onBeforeUpdate-=Queue;EditorApplication.update-=Deadline;EditorApplication.playModeStateChanged-=OnStop;AssemblyReloadEvents.beforeAssemblyReload-=OnReload;
             if(asset!=null)asset.devices=priorDevices;if(mouse!=null)InputSystem.RemoveDevice(mouse);if(keyboard!=null)InputSystem.RemoveDevice(keyboard);oldMouse?.MakeCurrent();oldKeyboard?.MakeCurrent();
             if(probe!=null)UnityEngine.Object.Destroy(probe);probe=null;Application.runInBackground=background;

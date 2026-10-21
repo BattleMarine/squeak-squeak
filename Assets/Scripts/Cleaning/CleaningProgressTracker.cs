@@ -36,6 +36,7 @@ namespace SqueakSqueak.Cleaning
         public float Polish => surfaceContamination == null
             ? 0f
             : Mathf.Clamp01(surfaceContamination.Polish);
+        public float SideDirtRemovalRatio=>surfaceContamination==null?0:surfaceContamination.SideDirtRemovalRatio;
 
         public float Cleanliness => Mathf.Clamp01((ObjectDirtRemovalRatio + SurfaceDirtRemovalRatio) * 0.5f);
 

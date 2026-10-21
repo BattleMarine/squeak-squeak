@@ -9,11 +9,11 @@ namespace SqueakSqueak.Experiment
         public bool IsComplete { get; }
         public double Value { get; }
         public int DisplayPercent => IsComplete ? 100 : Math.Min(99, (int)Math.Round(Value * 100));
-        public ExperimentProgress(bool prepared, int initialA, int removedA, double initialB, double currentB)
+        public ExperimentProgress(bool prepared, int initialA, int removedA, double initialB, double currentB,double initialSide=0,double currentSide=0)
         {
             IsValid = prepared && initialA >= 0 && removedA >= 0 && removedA <= initialA &&
                 !double.IsNaN(initialB) && !double.IsInfinity(initialB) && !double.IsNaN(currentB) && !double.IsInfinity(currentB) &&
-                initialB >= 0 && currentB >= 0 && currentB <= initialB;
+                initialB >= 0 && currentB >= 0 && currentB <= initialB&&double.IsFinite(initialSide)&&double.IsFinite(currentSide)&&initialSide>=0&&currentSide>=0&&currentSide<=initialSide;
             IsComplete = false; Value = 0;
             if (!IsValid) return;
             var count = 0; double sum = 0; var complete = true;
@@ -25,6 +25,7 @@ namespace SqueakSqueak.Experiment
                 complete &= residual <= .05d + 1e-6d;
             }
             IsComplete = complete;
+            if(initialSide>0)IsComplete&=currentSide/initialSide<=.05d+1e-6d;
             Value = count == 0 ? 1 : sum / count;
         }
     }

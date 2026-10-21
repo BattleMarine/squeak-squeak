@@ -131,8 +131,8 @@ namespace SqueakSqueak.Cleaning
             else contactRemaining = Mathf.Max(0f, contactRemaining - Mathf.Max(0f, deltaTime));
             pendingChange = false;
             var matrix = surfacePointer.SurfaceLocalToWorldMatrix;
-            var normal = matrix.inverse.transpose.MultiplyVector(contact.Face == CoinSurfaceFace.Front ? Vector3.up : Vector3.down).normalized;
-            var right = matrix.MultiplyVector(Vector3.right).normalized;
+            var normal = contact.Face==CoinSurfaceFace.Side?contact.WorldNormal:matrix.inverse.transpose.MultiplyVector(contact.Face == CoinSurfaceFace.Front ? Vector3.up : Vector3.down).normalized;
+            var right = matrix.MultiplyVector(contact.Face==CoinSurfaceFace.Side?Vector3.up:Vector3.right).normalized;
             var forward = Vector3.Cross(right, normal).normalized;
             // 단절된 위치/면으로 옛 변화 선을 운반하지 않습니다.
             if (lastChange.Contact.Face != contact.Face ||

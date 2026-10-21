@@ -63,7 +63,8 @@ namespace SqueakSqueak.Experiment
         public event Action<long> GoalReached;
         public event Action<ExperimentSnapshot> ResultStored;
         public ExperimentProgress Progress => new(IsActive && State != ExperimentState.Preparing && State != ExperimentState.Failed && surface.SurfaceMask != null,
-            cleaner.InitialDirtCount, cleaner.RemovedDirtCount, surface.SurfaceMask?.InitialDirtSum ?? 0, surface.SurfaceMask?.CurrentDirtSum ?? 0);
+            cleaner.InitialDirtCount, cleaner.RemovedDirtCount, surface.SurfaceMask?.InitialDirtSum ?? 0, surface.SurfaceMask?.CurrentDirtSum ?? 0,
+            surface.SurfaceMask?.GetInitialDirtSum(CoinSurfaceFace.Side)??0,surface.SurfaceMask?.GetCurrentDirtSum(CoinSurfaceFace.Side)??0);
 
         private void Start()
         {
@@ -317,7 +318,7 @@ namespace SqueakSqueak.Experiment
             if(view==null)return;
             view.Refresh(IsActive,State,goalAnnounced?100:(IsActive?Progress.DisplayPercent:0),State==ExperimentState.Viewing?CurrentResult.ElapsedSeconds:tracker.ElapsedSeconds,
                 stored.Count,maximumStoredResults,CurrentCoin?.DisplayName,selection.CurrentTool,ScannerEnabled,definition.Tools,
-                goalAnnounced?1:(IsActive?(float)Progress.Value:0));
+                goalAnnounced?1:(IsActive?(float)Progress.Value:0),CurrentResult!=null&&!CurrentResult.HasSide);
         }
         private void OnTreatment(CoinSurfaceContact _)
         {

@@ -47,8 +47,8 @@ namespace SqueakSqueak.Saving
             Check(c.SelectTool(2)&&surface.ApplyDroplet(FinalizationContact(CoinSurfaceFace.Front),.2f,Time.frameCount),"valid product droplet starts work");
             Check(tracker.HasStarted,"treatment starts existing tracker");PulseFinalizationClock(2);
             foreach(var dirt in c.Dirt)dirt.ApplyCleaning(100);
-            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back})
-                for(var i=0;i<surface.SurfaceMask.TexelCount;i++)
+            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back,CoinSurfaceFace.Side})
+                for(var i=0;i<surface.SurfaceMask.GetTexelCount(face);i++)
                     surface.SurfaceMask.TrySetDirt(face,i,surface.SurfaceMask.GetDirt(face,i)*.04f);
             surface.UploadSurfaceMasks();c.EvaluateGoal();
             var goal=FinalizationSample();
@@ -92,8 +92,8 @@ namespace SqueakSqueak.Saving
             Check(!SameFinalizationArrays(goal,confirmed)&&confirmed.ElapsedSeconds>goal.ElapsedSeconds+8,"final candidate differs from goal-time arrays/time");
             Check(!surface.ApplyCleaning(1)&&!surface.ApplyDroplet(default,.2f,Time.frameCount)&&!c.SelectTool(0),"saving blocks all product mutations");
             // 시험 원본을 직접 바꿔 후보의 배열 소유권을 공격합니다. 제품 입력 우회는 이 probe 안에만 있습니다.
-            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back})
-                for(var i=0;i<surface.SurfaceMask.TexelCount;i++)surface.SurfaceMask.TrySetDirt(face,i,0);
+            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back,CoinSurfaceFace.Side})
+                for(var i=0;i<surface.SurfaceMask.GetTexelCount(face);i++)surface.SurfaceMask.TrySetDirt(face,i,0);
             surface.UploadSurfaceMasks();
             finalizationFiles.WriteRelease.Set();while(!finalizationFiles.ReadbackEntered.IsSet)yield return null;
             var readbackFrame=Time.frameCount;PulseFinalizationClock(20);yield return new WaitForSecondsRealtime(.3f);
@@ -119,7 +119,7 @@ namespace SqueakSqueak.Saving
         }
 
         private ExperimentSnapshot FinalizationSample()=>new(c.RoundId,c.CurrentCoin.Id,c.CurrentCoin.ReactionProfile.Id,"probe-only-sample",surface.SurfaceMask,c.Dirt.Select(x=>x.CurrentDurability).ToArray(),tracker.ElapsedSeconds);
-        private static bool SameFinalizationArrays(ExperimentSnapshot a,ExperimentSnapshot b)=>a.A.SequenceEqual(b.A)&&a.FrontDirt.SequenceEqual(b.FrontDirt)&&a.BackDirt.SequenceEqual(b.BackDirt)&&a.FrontPolish.SequenceEqual(b.FrontPolish)&&a.BackPolish.SequenceEqual(b.BackPolish)&&a.FrontSoftened.SequenceEqual(b.FrontSoftened)&&a.BackSoftened.SequenceEqual(b.BackSoftened);
+        private static bool SameFinalizationArrays(ExperimentSnapshot a,ExperimentSnapshot b)=>a.A.SequenceEqual(b.A)&&a.FrontDirt.SequenceEqual(b.FrontDirt)&&a.BackDirt.SequenceEqual(b.BackDirt)&&a.FrontPolish.SequenceEqual(b.FrontPolish)&&a.BackPolish.SequenceEqual(b.BackPolish)&&a.FrontSoftened.SequenceEqual(b.FrontSoftened)&&a.BackSoftened.SequenceEqual(b.BackSoftened)&&a.SideDirt.SequenceEqual(b.SideDirt)&&a.SidePolish.SequenceEqual(b.SidePolish)&&a.SideSoftened.SequenceEqual(b.SideSoftened);
         private CoinSurfaceContact FinalizationContact(CoinSurfaceFace face)
         {
             var m=surface.SurfaceMask;var n=m.Resolution;

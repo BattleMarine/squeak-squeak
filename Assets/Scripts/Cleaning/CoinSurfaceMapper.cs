@@ -7,20 +7,22 @@ namespace SqueakSqueak.Cleaning
     public readonly struct CoinSurfaceContact
     {
         public CoinSurfaceFace Face { get; }
-        public bool IsCleanable => Face == CoinSurfaceFace.Front || Face == CoinSurfaceFace.Back;
+        public bool IsCleanable => Face == CoinSurfaceFace.Front || Face == CoinSurfaceFace.Back || Face == CoinSurfaceFace.Side;
+        public float SideRadius { get; }
         public Vector2 Uv { get; }
         public Vector3 LocalPosition { get; }
         public Vector3 WorldPosition { get; }
         public Vector3 WorldNormal { get; }
 
         internal CoinSurfaceContact(CoinSurfaceFace face, Vector2 uv, Vector3 localPosition,
-            Vector3 worldPosition, Vector3 worldNormal)
+            Vector3 worldPosition, Vector3 worldNormal,float sideRadius=0)
         {
             Face = face;
             Uv = uv;
             LocalPosition = localPosition;
             WorldPosition = worldPosition;
             WorldNormal = worldNormal;
+            SideRadius=sideRadius;
         }
     }
 
@@ -89,7 +91,11 @@ namespace SqueakSqueak.Cleaning
                 Mathf.Abs(relative.y) > height * 1.001f) return false;
             if (Mathf.Abs(localNormal.y) < .999f)
             {
-                contact = new CoinSurfaceContact(CoinSurfaceFace.Side, default, default, worldPoint, worldNormal.normalized);
+                // Facet 원통의 삼각형 내부는 원주보다 약간 안쪽입니다. 캡/내부 임의 점은 허용하지 않습니다.
+                if(Mathf.Abs(localNormal.y)>.001f||q.sqrMagnitude<.81f)return false;
+                var u=Mathf.Repeat(Mathf.Atan2(relative.z,relative.x)/(2*Mathf.PI),1);
+                var v=Mathf.Clamp01(relative.y/(2*height)+.5f);
+                contact=CoinSideSurface.Contact(matrix,bounds,u,v);
                 return true;
             }
             var sign = localNormal.y > 0f ? 1f : -1f;
@@ -109,6 +115,7 @@ namespace SqueakSqueak.Cleaning
         {
             if (!center.IsCleanable || !candidate.IsCleanable || center.Face != candidate.Face ||
                 !IsFinite(worldRadius) || worldRadius <= 0f || !IsSupportedTransform(matrix)) return false;
+            if(center.Face==CoinSurfaceFace.Side)return CoinSideSurface.Distance(matrix,center,candidate)<=worldRadius*(1+DiskTolerance);
             var delta = candidate.LocalPosition - center.LocalPosition;
             delta.y = 0f;
             var distanceSquared = matrix.MultiplyVector(delta).sqrMagnitude;

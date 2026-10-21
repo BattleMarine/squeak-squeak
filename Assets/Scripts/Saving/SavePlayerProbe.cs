@@ -67,6 +67,10 @@ namespace SqueakSqueak.Saving
             c=FindFirstObjectByType<CleaningExperimentController>();surface=FindFirstObjectByType<CoinSurfaceContamination>();pointer=FindFirstObjectByType<CoinSurfacePointer>();
             tracker=FindFirstObjectByType<CleaningProgressTracker>();stage=FindFirstObjectByType<CleaningStageController>();
             Check(c!=null&&c.SaveDirectory==directory,"isolated product path");
+            if(phase=="side-seed"||phase=="side-reload")
+            {
+                var work=RunSideCleaning();while(work.MoveNext())yield return work.Current;yield break;
+            }
             if(phase=="final-seed"||phase=="final-reload")
             {
                 var work=RunFinalRegression();while(work.MoveNext())yield return work.Current;yield break;
@@ -253,7 +257,7 @@ namespace SqueakSqueak.Saving
         {
             foreach(var d in c.Dirt)d.ApplyCleaning(100);
             var mask=surface.SurfaceMask;
-            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back})for(var i=0;i<mask.TexelCount;i++)
+            foreach(var face in new[]{CoinSurfaceFace.Front,CoinSurfaceFace.Back,CoinSurfaceFace.Side})for(var i=0;i<mask.GetTexelCount(face);i++)
             {
                 mask.TrySetDirt(face,i,mask.GetDirt(face,i)*(i%23<3?.12f+salt*.03f:0));
                 if(i%3==0)mask.TrySoften(face,i);
@@ -267,6 +271,8 @@ namespace SqueakSqueak.Saving
                 mask.GetPolish(CoinSurfaceFace.Front,i)!=value.FrontPolish[i]||mask.GetPolish(CoinSurfaceFace.Back,i)!=value.BackPolish[i]||
                 mask.IsSoftened(CoinSurfaceFace.Front,i)!=value.FrontSoftened[i]||mask.IsSoftened(CoinSurfaceFace.Back,i)!=value.BackSoftened[i])throw new Exception("Mask mismatch "+i);
             Check(c.Dirt.All(d=>d.CurrentDurability==0),"A all removed restored");Check(true,"exact both-face B/P/softening CPU restore");
+            Check(mask.HasSide==value.HasSide&&(surface.SideDirtMask!=null)==value.HasSide,"legacy/new side availability matches snapshot");
+            for(var i=0;i<mask.SideTexelCount;i++)if(mask.GetDirt(CoinSurfaceFace.Side,i)!=value.SideDirt[i]||mask.GetPolish(CoinSurfaceFace.Side,i)!=value.SidePolish[i]||mask.IsSoftened(CoinSurfaceFace.Side,i)!=value.SideSoftened[i])throw new Exception("Side mask mismatch "+i);
         }
         private void Capture(int n,string mode)
         {
@@ -324,6 +330,7 @@ namespace SqueakSqueak.Saving
             w.Write(value.ResultId);w.Write(value.CoinId);w.Write(value.ReactionId);w.Write(value.LayoutId);w.Write(value.RoundId);w.Write(value.Resolution);w.Write(value.ElapsedSeconds);w.Write(value.InitialDirtSum);
             foreach(var array in new[]{value.A,value.FrontDirt,value.BackDirt,value.FrontPolish,value.BackPolish})foreach(var v in array)w.Write(v);
             foreach(var array in new[]{value.FrontSoftened,value.BackSoftened})foreach(var v in array)w.Write(v);
+            if(value.HasSide){w.Write(2);foreach(var array in new[]{value.SideDirt,value.SidePolish})foreach(var v in array)w.Write(v);foreach(var v in value.SideSoftened)w.Write(v);}
             using var hash=SHA256.Create();return Convert.ToBase64String(hash.ComputeHash(data.ToArray()));
         }
         private sealed class PostCommitFault:SaveFileOperations

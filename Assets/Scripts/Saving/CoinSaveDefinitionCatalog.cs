@@ -29,11 +29,16 @@ namespace SqueakSqueak.Saving
         {
             public string CoinId {get;} public string ReactionId {get;} public string LayoutId {get;}
             public string Fingerprint {get;} public string RenderRevision {get;}
+            public string SideFingerprint {get;}
+            public string SideRenderRevision=>"cleaning-room-side-v2";
             public int Version=>CoinSaveLimits.DefinitionVersion;
             private readonly float initialB;private readonly float[] a;
             internal Contract(string coin,string reaction,string layout,string render,string hash,float b,float[] initialA)
-            {CoinId=coin;ReactionId=reaction;LayoutId=layout;RenderRevision=render;Fingerprint=hash;initialB=b;a=initialA;}
-            public CoinSurfaceMaskData InitialMask(int resolution)=>new(resolution,initialB,CoinSurfaceDirtPattern.FixedPatches);
+            {
+                CoinId=coin;ReactionId=reaction;LayoutId=layout;RenderRevision=render;Fingerprint=hash;initialB=b;a=initialA;
+                using var sha=SHA256.Create();SideFingerprint=BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(hash+"|side-cylinder-v2-NxN16-equal-regions-min95"))).Replace("-","").ToLowerInvariant();
+            }
+            public CoinSurfaceMaskData InitialMask(int resolution,bool side=false)=>new(resolution,initialB,CoinSurfaceDirtPattern.FixedPatches,0,side);
             public int ACount=>a.Length;
             public float InitialA(int i)=>a[i];
         }

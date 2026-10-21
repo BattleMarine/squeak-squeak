@@ -59,7 +59,7 @@ namespace SqueakSqueak.Cleaning
             }
         }
 
-        public void ShowContact(CoinSurfaceContact contact)
+        public void ShowContact(CoinSurfaceContact contact,Matrix4x4? surfaceMatrix=null,Bounds? bounds=null)
         {
             if (!contact.IsCleanable)
             {
@@ -67,6 +67,19 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
             ShowAt(contact.WorldPosition, contact.WorldNormal);
+            if(contact.Face==CoinSurfaceFace.Side&&surfaceMatrix.HasValue&&bounds.HasValue&&toolSelection.CurrentTool!=null)
+            {
+                var matrix=surfaceMatrix.Value;var geometry=bounds.Value;var radius=toolSelection.CurrentTool.BrushRadius;
+                var angle=contact.Uv.x*2*Mathf.PI;
+                var circumferenceRadius=geometry.extents.x*matrix.MultiplyVector(new Vector3(-Mathf.Sin(angle),0,Mathf.Cos(angle))).magnitude;
+                var height=2*geometry.extents.y*matrix.MultiplyVector(Vector3.up).magnitude;
+                for(var i=0;i<RangeSegmentCount;i++)
+                {
+                    var a=i*2*Mathf.PI/RangeSegmentCount;
+                    var ring=CoinSideSurface.Contact(matrix,geometry,contact.Uv.x+radius*Mathf.Cos(a)/(2*Mathf.PI*circumferenceRadius),contact.Uv.y+radius*Mathf.Sin(a)/height);
+                    rangeRenderer.SetPosition(i,ring.WorldPosition+ring.WorldNormal*surfaceOffset);
+                }
+            }
         }
 
         public void ShowAt(Vector3 surfacePosition, Vector3 surfaceNormal)

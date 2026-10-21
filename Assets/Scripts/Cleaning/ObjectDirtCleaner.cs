@@ -87,6 +87,7 @@ namespace SqueakSqueak.Cleaning
                 return 0;
             }
 
+            if(CoinSurfaceMapper.TryMapPoint(surfacePointer.SurfaceLocalToWorldMatrix,surfacePointer.SurfaceLocalBounds,surfaceHit.point,surfaceHit.normal,out var mapped)&&mapped.Face==CoinSurfaceFace.Side)return 0;
             var affectedCount = ApplyAtPoint(surfaceHit.point, deltaTime);
             NotifyCleaning(surfaceHit, affectedCount);
             return affectedCount;
@@ -94,6 +95,8 @@ namespace SqueakSqueak.Cleaning
 
         private void ApplyRubSample(CleaningRubSample sample, RaycastHit surfaceHit)
         {
+            // 현 A 배치는 캡 전용입니다. 옆면 stroke가 캡 모서리의 A를 함께 지우지 않습니다.
+            if(sample.End.Face==CoinSurfaceFace.Side)return;
             if (!ProcessingAllowed || !sample.IsRubbing || sample.FrameId == appliedRubFrame || toolSelection.CurrentTool == null) return;
             appliedRubFrame = sample.FrameId;
             var radius = toolSelection.CurrentTool.BrushRadius;

@@ -56,7 +56,7 @@ namespace SqueakSqueak.Cleaning
             }
             else
             {
-                var distance = matrix.MultiplyVector(contact.LocalPosition - previousContact.LocalPosition).magnitude;
+                var distance = contact.Face==CoinSurfaceFace.Side?CoinSideSurface.Distance(matrix,previousContact,contact):matrix.MultiplyVector(contact.LocalPosition - previousContact.LocalPosition).magnitude;
                 if (!float.IsFinite(distance)) { BreakContact(); previousFrame = frame; return default; }
                 if (distance > 0)
                 {

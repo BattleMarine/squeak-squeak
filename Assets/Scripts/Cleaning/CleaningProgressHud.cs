@@ -125,13 +125,13 @@ namespace SqueakSqueak.Cleaning
                 lastTool = tool; toolDisplayed = true;
             }
             var face = surfacePointer.HasSurfaceHit ? surfacePointer.CurrentSurfaceContact.Face : CoinSurfaceFace.Invalid;
-            SetTextIfChanged(faceHintText, face == CoinSurfaceFace.Front ? "앞면(태양) · 뒷면도 돌려서 닦아주세요" :
-                face == CoinSurfaceFace.Back ? "뒷면(물결) · 앞면도 함께 닦아주세요" :
-                face == CoinSurfaceFace.Side ? "옆면은 닦지 않아요 · MMB로 돌려주세요" : "태양 앞면 · 물결 뒷면, 두 면 모두 닦기");
+            SetTextIfChanged(faceHintText, face == CoinSurfaceFace.Front ? "앞면(태양) · 뒷면과 옆면도 닦아주세요" :
+                face == CoinSurfaceFace.Back ? "뒷면(물결) · 앞면과 옆면도 닦아주세요" :
+                face == CoinSurfaceFace.Side ? "옆면 · 둘레를 돌려가며 닦아주세요" : "앞면·뒷면·옆면 모두 닦기");
             SetTextIfChanged(nextActionText, completion.IsCompleted ? "완료! 결과에서 새 청소를 시작하세요" :
                 progressTracker.ObjectDirtRemovalRatio < completion.RequiredObjectDirtRemovalRatio ? ObjectDirtInstruction() :
-                progressTracker.SurfaceDirtRemovalRatio < completion.RequiredSurfaceDirtRemovalRatio ? "다음: 마른 천으로 앞뒤 얼룩을 닦으세요" :
-                progressTracker.Polish < completion.RequiredPolish ? "다음: 광택천으로 앞뒤를 마무리하세요" : "마무리 확인 중");
+                progressTracker.SurfaceDirtRemovalRatio < completion.RequiredSurfaceDirtRemovalRatio || progressTracker.SideDirtRemovalRatio < completion.RequiredSurfaceDirtRemovalRatio ? "다음: 마른 천으로 앞·뒤·옆면 얼룩을 닦으세요" :
+                progressTracker.Polish < completion.RequiredPolish ? "다음: 광택천으로 앞·뒤·옆면을 마무리하세요" : "마무리 확인 중");
         }
 
         private string ObjectDirtInstruction()

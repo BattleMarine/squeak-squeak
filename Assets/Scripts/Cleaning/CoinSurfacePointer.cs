@@ -405,7 +405,7 @@ namespace SqueakSqueak.Cleaning
                 CoinSurfaceMapper.TryMapHit(surfaceMeshCollider, surfaceMesh, surfaceLocalBounds,
                     hit, out var contact);
                 CurrentSurfaceContact = contact;
-                toolCursor.ShowContact(contact);
+                toolCursor.ShowContact(contact,SurfaceLocalToWorldMatrix,surfaceLocalBounds);
                 return;
             }
 

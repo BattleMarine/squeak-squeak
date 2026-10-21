@@ -15,9 +15,15 @@ namespace SqueakSqueak.Cleaning
         private readonly float[][] currentDirt;
         private readonly float[][] currentPolish;
         private readonly bool[][] softened;
-        private readonly double[] initialSums = new double[2];
-        private readonly double[] currentSums = new double[2];
-        private readonly double[] polishSums = new double[2];
+        private readonly double[] initialSums = new double[3];
+        private readonly double[] currentSums = new double[3];
+        private readonly double[] polishSums = new double[3];
+        public bool HasSide { get; }
+        public int SideHeight=>Math.Max(4,Resolution/16);
+        public int SideTexelCount=>HasSide?Resolution*SideHeight:0;
+        public double SideWeight=>HasSide?(double)ValidTexelCount/SideTexelCount:0;
+        public int RegionCount=>HasSide?3:2;
+        public float SideRemovalRatio=>!HasSide||initialSums[2]==0?1f:(float)Math.Max(0,Math.Min(1,1-currentSums[2]/initialSums[2]));
 
         public int Resolution { get; }
         public int TexelCount => validTexels.Length;
@@ -26,15 +32,15 @@ namespace SqueakSqueak.Cleaning
         public float InitialPolish { get; }
         public CoinSurfaceDirtPattern Pattern { get; }
         public long Revision { get; private set; }
-        public double InitialDirtSum => initialSums[0] + initialSums[1];
-        public double CurrentDirtSum => currentSums[0] + currentSums[1];
-        public double CurrentPolishSum => polishSums[0] + polishSums[1];
-        public float MeanPolish => (float)Math.Max(0d, Math.Min(1d, CurrentPolishSum / (2d * ValidTexelCount)));
+        public double InitialDirtSum => initialSums[0] + initialSums[1]+initialSums[2]*SideWeight;
+        public double CurrentDirtSum => currentSums[0] + currentSums[1]+currentSums[2]*SideWeight;
+        public double CurrentPolishSum => polishSums[0] + polishSums[1]+polishSums[2]*SideWeight;
+        public float MeanPolish => (float)Math.Max(0d, Math.Min(1d, CurrentPolishSum / (RegionCount * (double)ValidTexelCount)));
         public float RemovalRatio => InitialDirtSum == 0d ? 1f :
             (float)Math.Max(0d, Math.Min(1d, 1d - CurrentDirtSum / InitialDirtSum));
 
         public CoinSurfaceMaskData(int resolution = DefaultResolution, float initialIntensity = 1f,
-            CoinSurfaceDirtPattern pattern = CoinSurfaceDirtPattern.FixedPatches, float initialPolish = 0f)
+            CoinSurfaceDirtPattern pattern = CoinSurfaceDirtPattern.FixedPatches, float initialPolish = 0f,bool includeSide=false)
         {
             if (resolution < MinimumResolution || resolution > MaximumResolution)
                 throw new ArgumentOutOfRangeException(nameof(resolution));
@@ -48,11 +54,12 @@ namespace SqueakSqueak.Cleaning
             InitialIntensity = initialIntensity;
             InitialPolish = initialPolish;
             Pattern = pattern;
+            HasSide=includeSide;
             validTexels = new bool[resolution * resolution];
-            initialDirt = new[] { new float[TexelCount], new float[TexelCount] };
-            currentDirt = new[] { new float[TexelCount], new float[TexelCount] };
-            currentPolish = new[] { new float[TexelCount], new float[TexelCount] };
-            softened = new[] { new bool[TexelCount], new bool[TexelCount] };
+            initialDirt = new[] { new float[TexelCount], new float[TexelCount],new float[SideTexelCount] };
+            currentDirt = new[] { new float[TexelCount], new float[TexelCount],new float[SideTexelCount] };
+            currentPolish = new[] { new float[TexelCount], new float[TexelCount],new float[SideTexelCount] };
+            softened = new[] { new bool[TexelCount], new bool[TexelCount],new bool[SideTexelCount] };
             for (var j = 0; j < resolution; j++)
             for (var i = 0; i < resolution; i++)
             {
@@ -70,14 +77,21 @@ namespace SqueakSqueak.Cleaning
                     initialSums[face] += value;
                 }
             }
+            for(var i=0;i<SideTexelCount;i++)
+            {
+                var coverage=pattern==CoinSurfaceDirtPattern.Uniform?1:.65+.25*Math.Cos(2*Math.PI*(i%resolution+.5)/resolution*3);
+                initialDirt[2][i]=(float)(initialIntensity*coverage);initialSums[2]+=initialDirt[2][i];
+            }
             Reset();
         }
 
         public bool IsValidTexel(int index) => index >= 0 && index < TexelCount && validTexels[index];
+        public bool IsValidTexel(CoinSurfaceFace face,int index)=>face==CoinSurfaceFace.Side?index>=0&&index<SideTexelCount:IsValidTexel(index);
+        public int GetTexelCount(CoinSurfaceFace face)=>face==CoinSurfaceFace.Side?SideTexelCount:TexelCount;
 
         public float GetDirt(CoinSurfaceFace face, int index)
         {
-            if (index < 0 || index >= TexelCount) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= GetTexelCount(face)) throw new ArgumentOutOfRangeException(nameof(index));
             return currentDirt[FaceIndex(face)][index];
         }
 
@@ -86,7 +100,7 @@ namespace SqueakSqueak.Cleaning
 
         public float GetPolish(CoinSurfaceFace face, int index)
         {
-            if (index < 0 || index >= TexelCount) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= GetTexelCount(face)) throw new ArgumentOutOfRangeException(nameof(index));
             return currentPolish[FaceIndex(face)][index];
         }
 
@@ -96,7 +110,7 @@ namespace SqueakSqueak.Cleaning
         public bool IsSoftened(CoinSurfaceFace face, int index) => softened[FaceIndex(face)][index];
         public bool TrySoften(CoinSurfaceFace face, int index)
         {
-            if ((face != CoinSurfaceFace.Front && face != CoinSurfaceFace.Back) || !IsValidTexel(index)) return false;
+            if (!ValidFace(face) || !IsValidTexel(face,index)) return false;
             var f = FaceIndex(face);
             if (currentDirt[f][index] <= 0 || softened[f][index]) return false;
             softened[f][index] = true; Revision++; return true;
@@ -104,8 +118,7 @@ namespace SqueakSqueak.Cleaning
 
         public bool TrySetPolish(CoinSurfaceFace face, int index, float value)
         {
-            if ((face != CoinSurfaceFace.Front && face != CoinSurfaceFace.Back) ||
-                !IsValidTexel(index) || !IsFinite(value)) return false;
+            if (!ValidFace(face) || !IsValidTexel(face,index) || !IsFinite(value)) return false;
             value = Math.Max(0f, Math.Min(1f, value));
             var faceIndex = FaceIndex(face);
             var previous = currentPolish[faceIndex][index];
@@ -119,8 +132,7 @@ namespace SqueakSqueak.Cleaning
         /// <summary>텍셀 단위 데이터 변경만 수행합니다. 접촉·시간·브러시 규칙은 후속 청소 경로의 책임입니다.</summary>
         public bool TrySetDirt(CoinSurfaceFace face, int index, float value)
         {
-            if ((face != CoinSurfaceFace.Front && face != CoinSurfaceFace.Back) ||
-                !IsValidTexel(index) || !IsFinite(value)) return false;
+            if (!ValidFace(face) || !IsValidTexel(face,index) || !IsFinite(value)) return false;
             value = Math.Max(0f, Math.Min(1f, value));
             var faceIndex = FaceIndex(face);
             var previous = currentDirt[faceIndex][index];
@@ -134,14 +146,15 @@ namespace SqueakSqueak.Cleaning
 
         public void Reset()
         {
-            for (var face = 0; face < 2; face++)
+            for (var face = 0; face < 3; face++)
             {
-                Array.Copy(initialDirt[face], currentDirt[face], TexelCount);
-                Array.Clear(softened[face], 0, TexelCount);
+                var count=initialDirt[face].Length;
+                Array.Copy(initialDirt[face], currentDirt[face], count);
+                Array.Clear(softened[face], 0, count);
                 currentSums[face] = initialSums[face];
-                for (var index = 0; index < TexelCount; index++)
-                    currentPolish[face][index] = validTexels[index] ? InitialPolish : 0f;
-                polishSums[face] = (double)InitialPolish * ValidTexelCount;
+                for (var index = 0; index < count; index++)
+                    currentPolish[face][index] = face==2||validTexels[index] ? InitialPolish : 0f;
+                polishSums[face] = (double)InitialPolish * (face==2?SideTexelCount:ValidTexelCount);
             }
             Revision++;
         }
@@ -160,9 +173,11 @@ namespace SqueakSqueak.Cleaning
         {
             CoinSurfaceFace.Front => 0,
             CoinSurfaceFace.Back => 1,
+            CoinSurfaceFace.Side => 2,
             _ => throw new ArgumentOutOfRangeException(nameof(face))
         };
 
         private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+        private bool ValidFace(CoinSurfaceFace face)=>face==CoinSurfaceFace.Front||face==CoinSurfaceFace.Back||face==CoinSurfaceFace.Side&&HasSide;
     }
 }

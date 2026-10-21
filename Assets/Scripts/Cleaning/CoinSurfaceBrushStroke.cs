@@ -84,7 +84,7 @@ namespace SqueakSqueak.Cleaning
                 startContact.Face != from.Face || current.Face != to.Face)
             { BreakContact(); return false; }
             var start = startContact.LocalPosition;
-            var distance = matrix.MultiplyVector(current.LocalPosition - start).magnitude;
+            var distance = current.Face==CoinSurfaceFace.Side?CoinSideSurface.Distance(matrix,startContact,current):matrix.MultiplyVector(current.LocalPosition - start).magnitude;
             if (!Finite(distance) || distance <= 0) return false;
             var requested = Math.Max(1d, Math.Ceiling(distance / ((double)worldRadius * sampleSpacingInRadii)));
             if (double.IsNaN(requested) || double.IsInfinity(requested) || requested > MaximumSamples)
@@ -101,6 +101,11 @@ namespace SqueakSqueak.Cleaning
                 for (var sample = 0; sample < samples; sample++)
                 {
                     var center = Vector3.Lerp(start, current.LocalPosition, (sample + .5f) / samples);
+                    if(current.Face==CoinSurfaceFace.Side)
+                    {
+                        var t=(sample+.5f)/samples;
+                        center=CoinSideSurface.Contact(matrix,bounds,startContact.Uv.x+CoinSideSurface.DeltaU(startContact.Uv.x,current.Uv.x)*t,Mathf.Lerp(startContact.Uv.y,current.Uv.y,t)).LocalPosition;
+                    }
                     changed |= ApplyDisk(data, current.Face, matrix, bounds, center, worldRadius, amountPerSample,
                         reaction != null ? 0 : polishPerSample, reaction, reactionTool);
                 }
@@ -129,6 +134,12 @@ namespace SqueakSqueak.Cleaning
             Bounds bounds, Vector3 center, float radius, double amount, double polishAmount,
             CleaningReactionProfile reaction = null, CleaningToolId reactionTool = default)
         {
+            if(face==CoinSurfaceFace.Side)
+            {
+                var relative=center-bounds.center;
+                var contact=CoinSideSurface.Contact(matrix,bounds,Mathf.Atan2(relative.z,relative.x)/(2*Mathf.PI),relative.y/(2*bounds.extents.y)+.5f);
+                return CoinSideBrush.Apply(data,contact,matrix,bounds,radius,amount,polishAmount,reaction,reactionTool,false)>0;
+            }
             var sx = matrix.MultiplyVector(Vector3.right).magnitude;
             var sz = matrix.MultiplyVector(Vector3.forward).magnitude;
             var localRadius = bounds.extents.x;
@@ -179,6 +190,7 @@ namespace SqueakSqueak.Cleaning
         {
             if (data == null || !Finite(radius) || radius <= 0 || !contact.IsCleanable ||
                 !CoinSurfaceMapper.TryMapPoint(matrix,bounds,contact.WorldPosition,contact.WorldNormal,out var mapped) || mapped.Face != contact.Face) return 0;
+            if(mapped.Face==CoinSurfaceFace.Side)return CoinSideBrush.Apply(data,mapped,matrix,bounds,radius,0,0,null,default,true);
             var changed = 0;
             for (var j=0;j<data.Resolution;j++)
             for (var i=0;i<data.Resolution;i++)

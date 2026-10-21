@@ -33,7 +33,7 @@ namespace SqueakSqueak.Experiment
             root=Rect("RB.UI",canvas.transform,Vector2.zero,Vector2.zero,true).gameObject;
             var top=Box("RB.Header",root.transform,new Vector2(0,-62),new Vector2(780,110),new Vector2(.5f,1));
             info=Label("RB.Info",top.transform,new Vector2(0,34),new Vector2(760,30),17);
-            Label("RB.Controls",top.transform,new Vector2(0,6),new Vector2(760,28),16).text="칫솔·천: 누른 채 문지르기 / 스포이드: 클릭 / MMB 회전 / Wheel 확대 / F 복원";
+            Label("RB.Controls",top.transform,new Vector2(0,6),new Vector2(760,28),16).text="칫솔·천: 문지르기 / 스포이드: 클릭 / MMB로 앞·뒤·옆면 회전 / Wheel 확대 / F 복원";
             progress=Label("RB.ProgressText",top.transform,new Vector2(0,-23),new Vector2(760,28),20);
             var track=Box("RB.Gauge",root.transform,new Vector2(0,-130),new Vector2(600,14),new Vector2(.5f,1));
             fill=Rect("RB.GaugeFill",track.transform,Vector2.zero,Vector2.zero,true).gameObject.AddComponent<Image>();
@@ -73,11 +73,12 @@ namespace SqueakSqueak.Experiment
         }
 
         public void Refresh(bool active,ExperimentState state,int percent,float elapsed,int stored,int limit,string coin,
-            CleaningToolDefinition selected,bool scan,IReadOnlyList<CleaningToolDefinition> tools,float gaugeValue)
+            CleaningToolDefinition selected,bool scan,IReadOnlyList<CleaningToolDefinition> tools,float gaugeValue,bool legacySide=false)
         {
             entry.SetActive(!active);root.SetActive(active);if(!active)return;
             var seconds=Mathf.FloorToInt(elapsed);
             info.text=$"{coin} · 영구 보관 ({stored}/{limit})"+(state==ExperimentState.Viewing?" · 관찰 전용":"");
+            if(legacySide)info.text+=" · 옆면 없음(이전 결과)";
             progress.text=$"진행 {percent}% · 작업 {seconds/60:00}:{seconds%60:00}";
             // sprite 없는 Image의 Filled fallback을 쓰지 않고 실제 사각형 폭을 변경합니다.
             fill.rectTransform.anchorMax=new Vector2(Mathf.Clamp01(gaugeValue),1);
