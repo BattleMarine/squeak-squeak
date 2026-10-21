@@ -271,6 +271,15 @@ namespace SqueakSqueak.Cleaning
                 return;
             }
 
+            // 이미 시작한 MMB도 UI/전체 화면 모달 진입 시 중단합니다.
+            // UI를 벗어나도 누른 채 회전을 재개하지 않고 새 press를 기다립니다.
+            if (IsPointerOverUi)
+            {
+                IsRotating = false;
+                ClearSurfaceHit();
+                return;
+            }
+
             if (resetViewAction.WasPressedThisFrame())
             {
                 ResetViewToInitialState();

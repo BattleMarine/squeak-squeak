@@ -111,7 +111,7 @@ namespace SqueakSqueak.Experiment
             if (!IsActive)
             {
                 if (legacyStage.State != CleaningStageState.Cleaning && legacyStage.State != CleaningStageState.Result && legacyStage.State != CleaningStageState.Selecting) return false;
-                var error=definition.Validate();if(error!=null){LastError=error;view?.ShowNotice(error);return false;}
+                var error=definition.Validate();if(error!=null){LastError=error;ShowNotice(error);return false;}
                 pendingCoin=index;
                 if (legacyStage.State==CleaningStageState.Cleaning && tracker.HasStarted)
                 {
@@ -305,7 +305,12 @@ namespace SqueakSqueak.Experiment
         }
         private void Fail(string error)
         {
-            LastError=error;State=ExperimentState.Failed;SetWork(false);ReleaseDirt();coinRenderer.enabled=false;RefreshView();view?.ShowNotice(error);
+            LastError=error;State=ExperimentState.Failed;SetWork(false);ReleaseDirt();coinRenderer.enabled=false;RefreshView();ShowNotice(error);
+        }
+        private void ShowNotice(string text)
+        {
+            SetWork(false);if(!IsActive&&legacyStage!=null)legacyStage.enabled=false;
+            view?.ShowNotice(text,RestoreInput);
         }
         private void RefreshView()
         {

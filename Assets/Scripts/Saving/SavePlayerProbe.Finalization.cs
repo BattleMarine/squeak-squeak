@@ -16,7 +16,7 @@ namespace SqueakSqueak.Saving
     {
         private FinalizationFiles finalizationFiles;
         private void ReleaseFinalizationGate()=>finalizationFiles?.Release();
-        private void OnDestroy(){ReleaseFinalizationGate();ReleaseIntegrationGate();}
+        private void OnDestroy(){ReleaseFinalizationGate();ReleaseIntegrationGate();ReleaseUiFiles();}
 
         private IEnumerator RunFinalization()
         {

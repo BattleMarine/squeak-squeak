@@ -88,7 +88,7 @@ namespace SqueakSqueak.Experiment
                 if(!legacyStage.TryInitializeFromAccess(new StageAccessContext(value.Progress.ownedToolIds,value.Progress.completedStageIds),value.Progress.selectedStageId))
                 {legacyStage.enabled=false;ShowLoadError(legacyStage.LastError);return;}
                 persistenceReady=true;view.HideDialog();RestoreInput();RefreshView();
-                if(value.Message!=null)view.ShowNotice(value.Message);
+                if(value.Message!=null)ShowNotice(value.Message);
             }
             if(storeTask?.IsCompleted==true)
             {
@@ -168,9 +168,9 @@ namespace SqueakSqueak.Experiment
         {
             if(!isActiveAndEnabled||!SaveReady||PersistenceBusy)return false;
             if(IsActive&&State!=ExperimentState.Stored&&State!=ExperimentState.Viewing&&State!=ExperimentState.Failed)
-            {view.ShowNotice("미보관 작업 중에는 열람할 수 없습니다. 먼저 보관하거나 ‘실험 종료’로 명시적으로 폐기해 주세요.");return false;}
+            {ShowNotice("미보관 작업 중에는 열람할 수 없습니다. 먼저 보관하거나 ‘실험 종료’로 명시적으로 폐기해 주세요.");return false;}
             if(!IsActive&&legacyStage.State==CleaningStageState.Cleaning&&tracker.HasStarted)
-            {view.ShowNotice("미보관 일반 작업 중에는 열람할 수 없습니다. 먼저 완료하거나 명시적으로 폐기해 주세요.");return false;}
+            {ShowNotice("미보관 일반 작업 중에는 열람할 수 없습니다. 먼저 완료하거나 명시적으로 폐기해 주세요.");return false;}
             SetWork(false);if(!IsActive)legacyStage.enabled=false;
             view.ShowLibrary(stored,()=>{view.HideLibrary();RestoreInput();});return true;
         }
@@ -208,6 +208,7 @@ namespace SqueakSqueak.Experiment
         }
         private void RestoreInput()
         {
+            if(view!=null&&view.HasBlockingOverlay){SetWork(false);if(!IsActive)legacyStage.enabled=false;return;}
             if(!SaveReady){SetWork(false);return;}
             if(!IsActive){audioFeedback.enabled=originalAudio;visualFeedback.enabled=originalVisual;legacyStage.enabled=true;return;}
             SetWork(State==ExperimentState.Cleaning||State==ExperimentState.Ready,State==ExperimentState.Stored||State==ExperimentState.Viewing);

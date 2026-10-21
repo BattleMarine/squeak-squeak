@@ -15,6 +15,8 @@ namespace SqueakSqueak.Experiment
         private readonly Text progress,info,dialogText;
         private readonly Image fill;
         private readonly Button store,scanner,confirm,cancel;
+        private readonly RectTransform dialogCard,dialogViewport;
+        private readonly ScrollRect dialogScroll;
         private readonly Button[] toolButtons=new Button[3];
         private bool noticeOnly;
         private Action confirmAction,cancelAction;
@@ -47,7 +49,16 @@ namespace SqueakSqueak.Experiment
             dialog=Rect("RB.Dialog",canvas.transform,Vector2.zero,Vector2.zero,true).gameObject;
             var shade=dialog.AddComponent<Image>();shade.color=new Color(0,0,0,.8f);shade.raycastTarget=true;
             var card=Box("RB.DialogCard",dialog.transform,Vector2.zero,new Vector2(640,280),new Vector2(.5f,.5f));
-            dialogText=Label("RB.DialogText",card.transform,new Vector2(0,45),new Vector2(600,120),21);
+            dialogCard=(RectTransform)card.transform;
+            dialogViewport=Rect("RB.DialogViewport",card.transform,new Vector2(0,45),new Vector2(600,120));
+            dialogViewport.gameObject.AddComponent<RectMask2D>();
+            var scrollTarget=dialogViewport.gameObject.AddComponent<Image>();scrollTarget.color=Color.clear;
+            dialogText=Label("RB.DialogText",dialogViewport,Vector2.zero,new Vector2(600,120),21);
+            dialogText.rectTransform.anchorMin=new Vector2(0,1);dialogText.rectTransform.anchorMax=Vector2.one;
+            dialogText.rectTransform.pivot=new Vector2(.5f,1);
+            dialogText.rectTransform.sizeDelta=new Vector2(0,120);
+            dialogScroll=dialogViewport.gameObject.AddComponent<ScrollRect>();dialogScroll.viewport=dialogViewport;
+            dialogScroll.content=dialogText.rectTransform;dialogScroll.horizontal=false;dialogScroll.movementType=ScrollRect.MovementType.Clamped;dialogScroll.scrollSensitivity=24;
             confirm=Button("확인",card.transform,new Vector2(-130,-82),new Vector2(230,48),()=>{if(confirmAction!=null)confirmAction();else if(noticeOnly)HideDialog();else owner.ConfirmDialog(owner.DialogRoundId);},new Vector2(.5f,.5f));
             cancel=Button("취소",card.transform,new Vector2(130,-82),new Vector2(230,48),()=>{if(cancelAction!=null)cancelAction();else if(noticeOnly)HideDialog();else owner.CancelDialog(owner.DialogRoundId);},new Vector2(.5f,.5f));
             library=Rect("RB.Library",canvas.transform,Vector2.zero,Vector2.zero,true).gameObject;
@@ -58,6 +69,7 @@ namespace SqueakSqueak.Experiment
             for(var i=0;i<savedButtons.Length;i++)savedButtons[i]=Button("",library.transform,new Vector2(i%2==0?-260:260,-105-i/2*57),new Vector2(500,49),()=>{},new Vector2(.5f,1));
             library.SetActive(false);
             dialog.SetActive(false);root.SetActive(false);
+            Canvas.willRenderCanvases+=LayoutDialog;
         }
 
         public void Refresh(bool active,ExperimentState state,int percent,float elapsed,int stored,int limit,string coin,
@@ -85,6 +97,23 @@ namespace SqueakSqueak.Experiment
             noticeOnly=false;confirmAction=cancelAction=null;confirm.interactable=cancel.interactable=true;
             confirm.GetComponentInChildren<Text>().text="확인";cancel.GetComponentInChildren<Text>().text="취소";
             dialogText.text=text;dialog.SetActive(true);dialog.transform.SetAsLastSibling();
+            LayoutDialog();dialogScroll.StopMovement();dialogScroll.verticalNormalizedPosition=1;
+        }
+        private void LayoutDialog()
+        {
+            if(dialog==null||dialogText==null||!dialog.activeSelf)return;
+            // 긴 OS 오류도 마지막 복귀/재시도 안내를 잃지 않습니다. 최대 높이 이후에는 스크롤합니다.
+            // Canvas scale 변경 시 글꼴 픽셀 반올림 결과도 다시 계산합니다.
+            var textHeight=Mathf.Ceil(dialogText.preferredHeight)+2;
+            var bodyHeight=Mathf.Clamp(textHeight,120,400);
+            var cardHeight=bodyHeight+160;
+            if(dialogCard.sizeDelta.y==cardHeight&&dialogText.rectTransform.sizeDelta.y==Mathf.Max(textHeight,bodyHeight))return;
+            var scrollPosition=Mathf.Clamp01(dialogScroll.verticalNormalizedPosition);
+            dialogCard.sizeDelta=new Vector2(640,cardHeight);dialogViewport.sizeDelta=new Vector2(600,bodyHeight);
+            dialogText.rectTransform.sizeDelta=new Vector2(0,Mathf.Max(textHeight,bodyHeight));
+            dialogText.rectTransform.anchoredPosition=new Vector2(0,Mathf.Max(0,textHeight-bodyHeight)*(1-scrollPosition));
+            confirm.GetComponent<RectTransform>().anchoredPosition=new Vector2(-130,-cardHeight/2+58);
+            cancel.GetComponent<RectTransform>().anchoredPosition=new Vector2(130,-cardHeight/2+58);
         }
         public void ShowSystemDialog(string text,Action yes,Action no,string yesText="확인",string noText="취소")
         {
@@ -107,7 +136,12 @@ namespace SqueakSqueak.Experiment
         private Button closeLibrary;
         private Action closeLibraryAction;
         public void HideLibrary()=>library.SetActive(false);
-        public void ShowNotice(string text){ShowDialog(text);noticeOnly=true;}
+        public void ShowNotice(string text,Action closed)
+        {
+            ShowDialog(text);noticeOnly=true;
+            confirmAction=cancelAction=()=>{HideDialog();closed();};
+        }
+        public bool HasBlockingOverlay=>dialog.activeSelf||library.activeSelf;
         public void HideDialog()=>dialog.SetActive(false);
         public float GaugeAnchor => fill.rectTransform.anchorMax.x;
         public void SetSuspended(bool suspended)
@@ -136,6 +170,6 @@ namespace SqueakSqueak.Experiment
             var button=r.gameObject.AddComponent<Button>();button.targetGraphic=image;button.onClick.AddListener(()=>action());
             Label("RB.Label",r,Vector2.zero,size-new Vector2(10,8),20).text=text;return button;
         }
-        public void Dispose(){if(entry!=null)UnityEngine.Object.Destroy(entry);if(root!=null)UnityEngine.Object.Destroy(root);if(dialog!=null)UnityEngine.Object.Destroy(dialog);if(library!=null)UnityEngine.Object.Destroy(library);}
+        public void Dispose(){Canvas.willRenderCanvases-=LayoutDialog;if(entry!=null)UnityEngine.Object.Destroy(entry);if(root!=null)UnityEngine.Object.Destroy(root);if(dialog!=null)UnityEngine.Object.Destroy(dialog);if(library!=null)UnityEngine.Object.Destroy(library);}
     }
 }
