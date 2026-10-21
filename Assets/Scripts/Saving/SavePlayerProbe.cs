@@ -67,6 +67,10 @@ namespace SqueakSqueak.Saving
             c=FindFirstObjectByType<CleaningExperimentController>();surface=FindFirstObjectByType<CoinSurfaceContamination>();pointer=FindFirstObjectByType<CoinSurfacePointer>();
             tracker=FindFirstObjectByType<CleaningProgressTracker>();stage=FindFirstObjectByType<CleaningStageController>();
             Check(c!=null&&c.SaveDirectory==directory,"isolated product path");
+            if(phase=="final-seed"||phase=="final-reload")
+            {
+                var work=RunFinalRegression();while(work.MoveNext())yield return work.Current;yield break;
+            }
             if(phase=="ui-flow"||phase=="ui-capacity")
             {
                 var work=RunUiFlow();while(work.MoveNext())yield return work.Current;yield break;
@@ -339,11 +343,11 @@ namespace SqueakSqueak.Saving
         }
         private static bool ButtonText(string text)=>FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Any(b=>b.interactable&&b.GetComponentInChildren<UnityEngine.UI.Text>()?.text==text);
         private static void Click(string text)=>FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(b=>b.interactable&&b.GetComponentInChildren<UnityEngine.UI.Text>()?.text==text).onClick.Invoke();
-        private void Finish(string result)
+        private void Finish(string result,bool automaticQuit=true)
         {
             ReleaseUiFiles();
             if(finished)return;finished=true;ReleaseFinalizationGate();ReleaseIntegrationGate();LastReport=result;Directory.CreateDirectory(directory);File.WriteAllLines(Path.Combine(directory,"probe-"+phase+".txt"),new[]{result}.Concat(checks));Debug.Log(result);
-            if(!editorRun){if(c!=null)c.ApproveValidationQuit();Application.Quit(result.StartsWith("PASS",StringComparison.Ordinal)?0:1);}
+            if(!editorRun&&automaticQuit){if(c!=null)c.ApproveValidationQuit();Application.Quit(result.StartsWith("PASS",StringComparison.Ordinal)?0:1);}
         }
     }
 }
