@@ -122,3 +122,7 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Unity 비정상 종료 후 보존한 로컬 복구 백업
+/Assets/_Recovery/
+/Assets/_Recovery.meta
