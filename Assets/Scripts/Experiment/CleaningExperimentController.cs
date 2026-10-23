@@ -298,7 +298,7 @@ namespace SqueakSqueak.Experiment
         private void SetWork(bool work,bool observe=false)
         {
             if(completion!=null)completion.SetEvaluationAllowed(false);
-            if(pointer!=null)pointer.enabled=work||observe;if(cleaner!=null)cleaner.SetProcessingAllowed(work);if(surface!=null)surface.SetProcessingAllowed(work);
+            if(pointer!=null){pointer.SetToolCursorAllowed(!observe);pointer.enabled=work||observe;}if(cleaner!=null)cleaner.SetProcessingAllowed(work);if(surface!=null)surface.SetProcessingAllowed(work);
             if(tracker!=null)tracker.SetTimingPaused(!work);
             if(audioFeedback!=null){audioFeedback.enabled=work&&originalAudio;if(!work)audioFeedback.StopAudio();}
             if(visualFeedback!=null){visualFeedback.enabled=work&&originalVisual;if(!work)visualFeedback.StopFeedback();}

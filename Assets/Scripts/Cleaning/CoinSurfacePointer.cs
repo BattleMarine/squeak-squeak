@@ -82,6 +82,14 @@ namespace SqueakSqueak.Cleaning
         private readonly System.Collections.Generic.List<RaycastResult> uiHits = new();
         private int uiFrame = -1;
         private bool pointerOverUi;
+        private bool toolCursorAllowed=true;
+
+        /// <summary>관찰 입력/적중은 유지하고 도구 점·범위 링의 표시만 제어합니다.</summary>
+        public void SetToolCursorAllowed(bool allowed)
+        {
+            toolCursorAllowed=allowed;
+            if(!allowed&&toolCursor!=null)toolCursor.Hide();
+        }
 
         public CoinSurfaceContact CurrentSurfaceContact { get; private set; }
 
@@ -405,7 +413,8 @@ namespace SqueakSqueak.Cleaning
                 CoinSurfaceMapper.TryMapHit(surfaceMeshCollider, surfaceMesh, surfaceLocalBounds,
                     hit, out var contact);
                 CurrentSurfaceContact = contact;
-                toolCursor.ShowContact(contact,SurfaceLocalToWorldMatrix,surfaceLocalBounds);
+                if(toolCursorAllowed)toolCursor.ShowContact(contact,SurfaceLocalToWorldMatrix,surfaceLocalBounds);
+                else toolCursor.Hide();
                 return;
             }
 
